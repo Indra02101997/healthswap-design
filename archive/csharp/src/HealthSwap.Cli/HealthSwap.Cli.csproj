@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HealthSwap.Cli</RootNamespace>
+    <AssemblyName>hs</AssemblyName>
+    <Description>HealthSwap operations CLI: database readiness, reference data and demo seeding, knowledge pipeline jobs, finalizers, month close and ML data export/simulation.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HealthSwap.Platform\HealthSwap.Platform.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,123 @@
+{
+  "name": "ranker",
+  "version": "ranker-lr-20261124.1315",
+  "featureNames": [
+    "delta_hsi",
+    "substitutability",
+    "price_ratio",
+    "is_cheaper",
+    "brand_switch",
+    "pack_ratio_log",
+    "placement_cart",
+    "placement_checkout",
+    "placement_pdp",
+    "placement_agent",
+    "daypart_morning",
+    "daypart_evening",
+    "goal_match",
+    "category_beverage",
+    "nova_improvement",
+    "same_brand_family"
+  ],
+  "inputName": "input",
+  "outputName": "probabilities",
+  "positiveClassIndex": 1,
+  "metrics": {
+    "auc": 0.662878,
+    "logLoss": 0.504165,
+    "accuracy": 0.773743,
+    "brier": 0.163118,
+    "aucIps": 0.662878,
+    "logLossIps": 0.504165,
+    "accuracyIps": 0.773743,
+    "brierIps": 0.163118,
+    "acceptRateIps": 0.773743,
+    "meanPredictedIps": 0.76892,
+    "effectiveSampleSize": 358.0,
+    "ipsClip": 10.0,
+    "ece": 0.030257,
+    "trainRows": 1433.0,
+    "validationRows": 358.0,
+    "positiveRate": 0.773743,
+    "trainPositiveRate": 0.771807,
+    "candidateLogLoss_lr": 0.504165
+  },
+  "trainedAt": "2026-11-24T13:15:33Z",
+  "algorithm": "LogisticRegression",
+  "calibration": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 44,
+      "meanPredicted": 0.543481,
+      "fractionPositive": 0.568182
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 27,
+      "meanPredicted": 0.645139,
+      "fractionPositive": 0.555556
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 114,
+      "meanPredicted": 0.752887,
+      "fractionPositive": 0.789474
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 153,
+      "meanPredicted": 0.849532,
+      "fractionPositive": 0.856209
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 20,
+      "meanPredicted": 0.906697,
+      "fractionPositive": 0.8
+    }
+  ],
+  "training": {
+    "file": "ranker_events.jsonl",
+    "sha256": "e8c731530e7fa21246b8cf65d4a0cb8b33d8367ebfb602ca422a88bdd8e1f630",
+    "rows": 1791,
+    "seed": 7,
+    "validation": "1 of 5 stratified group folds",
+    "selection": "fixed",
+    "sampleWeights": "1/propensity clipped at 10",
+    "onnxParityMaxAbsDiff": 1.1920928955078125e-07,
+    "onnxOpset": {
+      "": 17,
+      "ai.onnx.ml": 3
+    }
+  }
+}

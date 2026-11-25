@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuickBasket demo shop with HealthSwap</title>
+  <link rel="stylesheet" href="/demo/sdk/healthswap-web.css">
+  <link rel="stylesheet" href="/demo/demo.css">
+  <script type="module" src="/demo/demo.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the cart</a>
+  <header class="site-header">
+    <p class="brand">QuickBasket <span class="brand-tag">demo shop</span></p>
+    <p class="store">Koramangala, Bengaluru &middot; store BLR-KOR-012 &middot; market IN &middot; prices in INR</p>
+  </header>
+
+  <main id="main" class="layout">
+    <section class="panel cart" aria-labelledby="cart-heading">
+      <h1 id="cart-heading">Your cart</h1>
+      <table class="cart-table">
+        <caption class="visually-hidden">Items in your cart</caption>
+        <thead>
+          <tr>
+            <th scope="col">Item</th>
+            <th scope="col" class="num">Price</th>
+            <th scope="col" class="num">Quantity</th>
+            <th scope="col" class="num">Total</th>
+          </tr>
+        </thead>
+        <tbody id="cart-lines"></tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" colspan="3">Cart total</th>
+            <td id="cart-total" class="num"></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="cart-actions">
+        <button type="button" id="find-swaps" class="button">Find healthier swaps</button>
+        <p id="status" class="status" role="status"></p>
+      </div>
+      <div id="swaps" class="swaps"></div>
+    </section>
+
+    <aside class="panel" aria-labelledby="log-heading">
+      <h2 id="log-heading">Event log</h2>
+      <p class="hint">What the web SDK does and reports (its <code>onEvent</code> callback), newest first.</p>
+      <ol id="event-log" class="event-log" aria-live="off"></ol>
+    </aside>
+
+    <aside class="panel partner" aria-labelledby="partner-heading">
+      <h2 id="partner-heading">Partner view (demo only)</h2>
+      <p class="hint">
+        RA-1 recommendation charges for cart <code id="cart-ref"></code>, read server-side by the demo backend
+        (<code>GET /demo/api/charges</code>); the browser never holds partner credentials. Each add of a recommended
+        product is one INR 1.00 <strong>PENDING</strong> charge; Undo within 5 s makes it <strong>VOID</strong>.
+      </p>
+      <div class="table-scroll">
+        <table class="charges-table">
+          <caption class="visually-hidden">Recommendation charges for this cart</caption>
+          <thead>
+            <tr>
+              <th scope="col">Time</th>
+              <th scope="col">Event</th>
+              <th scope="col">Product</th>
+              <th scope="col" class="num">Amount</th>
+              <th scope="col">State</th>
+            </tr>
+          </thead>
+          <tbody id="charges"></tbody>
+        </table>
+      </div>
+      <p id="charges-summary" class="hint"></p>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    Synthetic demo data on the local HealthSwap reference implementation (Development only). Nothing is ordered or billed.
+  </footer>
+</body>
+</html>

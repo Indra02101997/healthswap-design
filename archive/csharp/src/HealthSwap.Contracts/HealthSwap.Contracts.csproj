@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HealthSwap.Contracts</RootNamespace>
+    <Description>Wire contracts for the HealthSwap Partner API (mirrors api/openapi.yaml). Shared by the service and the .NET SDK.</Description>
+    <IsPackable>true</IsPackable>
+    <PackageId>HealthSwap.Contracts</PackageId>
+    <Version>1.1.0</Version>
+  </PropertyGroup>
+</Project>

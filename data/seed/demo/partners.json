@@ -1,0 +1,88 @@
+{
+  "note": "SYNTHETIC demo tenants for local development and the manual test guide. Client secrets here are development-only and are hashed (PBKDF2) when loaded; never reuse them anywhere else.",
+  "partners": [
+    {
+      "partnerId": "6f1d0c2a-5b7e-4c1a-9d3e-1a2b3c4d5e01",
+      "displayName": "QuickBasket",
+      "legalName": "QuickBasket Retail Pvt Ltd (synthetic)",
+      "geography": "IN",
+      "markets": ["IN"],
+      "status": "LIVE",
+      "clients": [
+        { "clientId": "quickbasket-server", "secret": "dev-only-quickbasket-secret-change-me", "scopes": ["catalog.write", "catalog.read", "inventory.write", "products.read", "carts.evaluate", "events.write", "orders.write", "orders.read", "users.write", "users.read", "billing.read", "billing.write", "sdk.sessions.write"] }
+      ],
+      "webhook": { "url": "http://localhost:8080/demo/webhooks/quickbasket", "secret": "dev-only-webhook-secret-quickbasket", "eventTypes": [] },
+      "config": {
+        "markets": ["IN"],
+        "currency": "INR",
+        "fee": {
+          "rate": 0.10, "rule": "FP-1", "caps": { "perLine": "50.00", "perOrder": "120.00", "perMonth": null, "currency": "INR" }, "feeBasis": "SAME_AS_PRICE",
+          "recommendationAdd": { "enabled": true, "rule": "RA-1", "amount": "1.00", "currency": "INR", "basis": "PER_ADD_EVENT", "undoGraceSeconds": 5, "settleAfterSeconds": 600, "requireImpression": true, "impressionToleranceSeconds": 5, "chargeAccept": true, "maxChargeableAddsPerSuggestion": null, "monthlyCap": null }
+        },
+        "taxRate": 0.18, "paymentTermsDays": 30, "disputeWindowDays": 15,
+        "returnWindowDays": { "QUICK_COMMERCE": 2, "SCHEDULED_DELIVERY": 7, "PICKUP": 2 },
+        "attributionWindowHours": 24,
+        "placements": ["CART", "CHECKOUT", "PDP", "SEARCH", "AGENT"],
+        "maxSuggestionsPerCart": 3, "maxAlternativesPerLine": 2,
+        "priceGuards": { "maxNormalizedPriceRatio": 1.75, "maxAbsPremiumPerUnit": "150.00" },
+        "priceBasis": "TAX_INCLUSIVE",
+        "packSizeRatio": { "min": 0.5, "max": 2.0 },
+        "availabilityMode": "MIRROR", "inventoryStalenessSeconds": 86400,
+        "scoringProfile": "IN_DEFAULT_V1",
+        "sponsored": { "allowed": false },
+        "blockedBrands": [], "excludedCategories": ["infant-foods", "alcohol", "supplements"],
+        "minorsPolicy": "STRICT",
+        "locales": ["en-IN", "hi-IN"],
+        "killSwitch": false,
+        "experiment": { "name": "pilot-2026-11", "holdoutPercent": 0 },
+        "explorationRate": 0.0
+      },
+      "stores": [
+        { "storeId": "BLR-KOR-012", "market": "IN", "postalCode": "560034", "timezone": "Asia/Kolkata" },
+        { "storeId": "BLR-IND-004", "market": "IN", "postalCode": "560038", "timezone": "Asia/Kolkata" }
+      ],
+      "catalogFile": "catalog-in.json",
+      "inventoryFile": "inventory-in.json"
+    },
+    {
+      "partnerId": "6f1d0c2a-5b7e-4c1a-9d3e-1a2b3c4d5e02",
+      "displayName": "Hometown Grocer",
+      "legalName": "Hometown Grocer Inc. (synthetic)",
+      "geography": "US",
+      "markets": ["US"],
+      "status": "LIVE",
+      "clients": [
+        { "clientId": "hometown-server", "secret": "dev-only-hometown-secret-change-me", "scopes": ["catalog.write", "catalog.read", "inventory.write", "products.read", "carts.evaluate", "events.write", "orders.write", "orders.read", "users.write", "users.read", "billing.read", "billing.write", "sdk.sessions.write"] }
+      ],
+      "webhook": { "url": "http://localhost:8080/demo/webhooks/hometown", "secret": "dev-only-webhook-secret-hometown", "eventTypes": [] },
+      "config": {
+        "markets": ["US"],
+        "currency": "USD",
+        "fee": {
+          "rate": 0.10, "rule": "FP-1", "caps": { "perLine": "2.00", "perOrder": "5.00", "perMonth": null, "currency": "USD" }, "feeBasis": "SAME_AS_PRICE",
+          "recommendationAdd": { "enabled": false, "rule": "RA-1", "amount": "0.01", "currency": "USD", "basis": "PER_ADD_EVENT", "undoGraceSeconds": 5, "settleAfterSeconds": 600, "requireImpression": true, "impressionToleranceSeconds": 5, "chargeAccept": true }
+        },
+        "taxRate": 0.0, "paymentTermsDays": 30, "disputeWindowDays": 15,
+        "returnWindowDays": { "QUICK_COMMERCE": 2, "SCHEDULED_DELIVERY": 30, "PICKUP": 30 },
+        "attributionWindowHours": 24,
+        "maxSuggestionsPerCart": 3, "maxAlternativesPerLine": 2,
+        "priceGuards": { "maxNormalizedPriceRatio": 1.6, "maxAbsPremiumPerUnit": "4.00" },
+        "priceBasis": "TAX_EXCLUSIVE",
+        "packSizeRatio": { "min": 0.5, "max": 2.0 },
+        "availabilityMode": "MIRROR", "inventoryStalenessSeconds": 86400,
+        "scoringProfile": "US_DEFAULT_V1",
+        "excludedCategories": ["infant-foods", "alcohol", "supplements"],
+        "minorsPolicy": "STRICT",
+        "locales": ["en-US", "es-US"],
+        "experiment": { "name": "pilot-2026-11", "holdoutPercent": 0 },
+        "explorationRate": 0.0
+      },
+      "stores": [
+        { "storeId": "NYC-BKN-101", "market": "US", "postalCode": "11201", "timezone": "America/New_York" }
+      ],
+      "catalogFile": "catalog-us.json",
+      "inventoryFile": "inventory-us.json"
+    }
+  ],
+  "admin": { "clientId": "hs-admin", "secret": "dev-only-admin-secret-change-me", "scopes": ["hs.admin"] }
+}

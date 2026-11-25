@@ -1,0 +1,21 @@
+{
+  "stores": {
+    "NYC-BKN-101": [
+      { "partnerSku": "HG-CRL-FROST", "inStock": true, "price": "4.29" },
+      { "partnerSku": "HG-CRL-WGLITE", "inStock": true, "price": "5.49" },
+      { "partnerSku": "HG-GRAN-HONEY", "inStock": true, "price": "4.99" },
+      { "partnerSku": "HG-COLA-12", "inStock": true, "price": "1.25" },
+      { "partnerSku": "HG-ZCOLA-12", "inStock": true, "price": "1.25" },
+      { "partnerSku": "HG-LIME-12", "inStock": true, "price": "1.10" },
+      { "partnerSku": "HG-CHIP-CLS", "inStock": true, "price": "4.49" },
+      { "partnerSku": "HG-CHIP-BKD", "inStock": true, "price": "4.29" },
+      { "partnerSku": "HG-CHIP-LS", "inStock": true, "price": "4.79" },
+      { "partnerSku": "HG-YOG-STR", "inStock": true, "price": "1.29" },
+      { "partnerSku": "HG-YOG-GRK", "inStock": true, "price": "1.39" },
+      { "partnerSku": "HG-BRD-WHT", "inStock": true, "price": "2.99" },
+      { "partnerSku": "HG-BRD-WW", "inStock": true, "price": "3.99" },
+      { "partnerSku": "HG-CK-CHOC", "inStock": true, "price": "3.99" },
+      { "partnerSku": "HG-CK-OAT", "inStock": true, "price": "4.49" }
+    ]
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "name": "entity_resolution",
+  "version": "entity_resolution-gbm-20261124.1315",
+  "featureNames": [
+    "name_trigram",
+    "name_embedding_cos",
+    "brand_match",
+    "size_equal",
+    "size_ratio_log",
+    "nutrition_cos",
+    "ingredient_jaccard",
+    "gtin_conflict"
+  ],
+  "inputName": "input",
+  "outputName": "probabilities",
+  "positiveClassIndex": 1,
+  "metrics": {
+    "auc": 1.0,
+    "logLoss": 4.4e-05,
+    "accuracy": 1.0,
+    "brier": 0.0,
+    "ece": 4.4e-05,
+    "heuristicAuc": 0.95,
+    "trainRows": 281.0,
+    "validationRows": 71.0,
+    "positiveRate": 0.56338,
+    "trainPositiveRate": 0.55516,
+    "candidateLogLoss_lr": 0.149839,
+    "candidateLogLoss_gbm": 4.4e-05
+  },
+  "trainedAt": "2026-11-24T13:15:33Z",
+  "algorithm": "GradientBoostingClassifier",
+  "calibration": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 31,
+      "meanPredicted": 6e-05,
+      "fractionPositive": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 40,
+      "meanPredicted": 0.999969,
+      "fractionPositive": 1.0
+    }
+  ],
+  "training": {
+    "file": "er_pairs.jsonl",
+    "sha256": "082d21a2815b5e45729214e2907643657131763015efe99152f12f07ecaddc81",
+    "rows": 352,
+    "seed": 7,
+    "validation": "1 of 5 stratified group folds",
+    "selection": "lowest validation log loss; GradientBoosting only when at least 10% better",
+    "sampleWeights": "none",
+    "onnxParityMaxAbsDiff": 7.721064425466294e-08,
+    "onnxOpset": {
+      "": 17,
+      "ai.onnx.ml": 3
+    }
+  }
+}

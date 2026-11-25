@@ -1,0 +1,216 @@
+{
+  "market": "IN",
+  "packVersion": "IN-2026.11.1",
+  "status": "PREVIEW",
+  "verification": "ILLUSTRATIVE. Thresholds and model parameters follow the structure of the cited instruments but must be verified against the current official texts (FSSAI notifications, Codex, HSR calculator) and validated with official worked examples before production use.",
+  "primaryModel": "IN_INR_DRAFT",
+  "methodologyUrl": "https://healthswap.example/methodology/IN/v1",
+  "documents": [
+    {
+      "citation": "FSSAI L&D 2020",
+      "authority": "FSSAI",
+      "title": "Food Safety and Standards (Labelling and Display) Regulations, 2020",
+      "url": "https://www.fssai.gov.in/cms/food-safety-and-standards-regulations.php",
+      "effectiveFrom": "2022-07-01"
+    },
+    {
+      "citation": "FSSAI A&C 2018",
+      "authority": "FSSAI",
+      "title": "Food Safety and Standards (Advertising and Claims) Regulations, 2018",
+      "url": "https://www.fssai.gov.in/cms/food-safety-and-standards-regulations.php",
+      "effectiveFrom": "2019-07-01"
+    },
+    {
+      "citation": "FSSAI INR draft 2022",
+      "authority": "FSSAI",
+      "title": "Draft notification on front-of-pack nutrition labelling (Indian Nutrition Rating)",
+      "url": "https://www.fssai.gov.in/",
+      "effectiveFrom": null
+    },
+    {
+      "citation": "FSSAI FPS&FA 2011 App. A",
+      "authority": "FSSAI",
+      "title": "Food Products Standards and Food Additives Regulations, 2011 - Appendix A",
+      "url": "https://www.fssai.gov.in/cms/food-safety-and-standards-regulations.php",
+      "effectiveFrom": "2011-08-05"
+    }
+  ],
+  "allergenRules": [
+    "GLUTEN_CEREALS",
+    "CRUSTACEANS",
+    "MILK",
+    "EGGS",
+    "FISH",
+    "PEANUTS",
+    "TREE_NUTS",
+    "SOY",
+    "SULPHITES"
+  ],
+  "hsi": {
+    "version": "1.0",
+    "weightNutrientProfile": 0.7,
+    "weightProcessing": 0.15,
+    "weightAdditives": 0.15,
+    "novaPoints": {
+      "1": 100,
+      "2": 85,
+      "3": 70,
+      "4": 40
+    },
+    "tierBPenalty": 30,
+    "tierCPenalty": 10
+  },
+  "rules": {
+    "version": "R-1.3",
+    "tauSub": 0.7,
+    "deltaMin": 8,
+    "limitedNutrientTolerance": 0.1,
+    "dismissCooldownDays": 7,
+    "minAlternativeConfidence": 0.8,
+    "verifiedAllergenConfidence": 0.98,
+    "targetCeilingPercentile": 60,
+    "maxEdgesPerProduct": 50,
+    "retrievalCandidates": 200
+  },
+  "fop": [
+    {
+      "nutrient": "SUGAR",
+      "physicalState": "SOLID",
+      "basis": "PER_100G",
+      "lowMax": 5.0,
+      "highMin": 22.5,
+      "highInclusive": false
+    },
+    {
+      "nutrient": "SUGAR",
+      "physicalState": "LIQUID",
+      "basis": "PER_100ML",
+      "lowMax": 2.5,
+      "highMin": 11.25,
+      "highInclusive": false
+    },
+    {
+      "nutrient": "FASAT",
+      "physicalState": "SOLID",
+      "basis": "PER_100G",
+      "lowMax": 1.5,
+      "highMin": 5.0,
+      "highInclusive": false
+    },
+    {
+      "nutrient": "FASAT",
+      "physicalState": "LIQUID",
+      "basis": "PER_100ML",
+      "lowMax": 0.75,
+      "highMin": 2.5,
+      "highInclusive": false
+    },
+    {
+      "nutrient": "NA",
+      "physicalState": "SOLID",
+      "basis": "PER_100G",
+      "lowMax": 120,
+      "highMin": 600,
+      "highInclusive": false
+    },
+    {
+      "nutrient": "NA",
+      "physicalState": "LIQUID",
+      "basis": "PER_100ML",
+      "lowMax": 60,
+      "highMin": 300,
+      "highInclusive": false
+    }
+  ],
+  "dailyValues": {
+    "ENERC_KCAL": 2000,
+    "FASAT": 22,
+    "NA": 2000,
+    "SUGAD": 50,
+    "FIBTG": 30,
+    "PROCNT": 54
+  },
+  "claims": [
+    {
+      "claimCode": "LOW_SUGAR",
+      "nutrient": "SUGAR",
+      "physicalState": "SOLID",
+      "basis": "PER_100G",
+      "maxValue": 5.0
+    },
+    {
+      "claimCode": "LOW_SUGAR",
+      "nutrient": "SUGAR",
+      "physicalState": "LIQUID",
+      "basis": "PER_100ML",
+      "maxValue": 2.5
+    },
+    {
+      "claimCode": "SUGAR_FREE",
+      "nutrient": "SUGAR",
+      "physicalState": "ANY",
+      "basis": "PER_100G",
+      "maxValue": 0.5
+    },
+    {
+      "claimCode": "HIGH_FIBRE",
+      "nutrient": "FIBTG",
+      "physicalState": "SOLID",
+      "basis": "PER_100G",
+      "minValue": 6.0
+    },
+    {
+      "claimCode": "SOURCE_OF_FIBRE",
+      "nutrient": "FIBTG",
+      "physicalState": "SOLID",
+      "basis": "PER_100G",
+      "minValue": 3.0
+    },
+    {
+      "claimCode": "REDUCED",
+      "nutrient": "SUGAR",
+      "physicalState": "ANY",
+      "basis": "RELATIVE",
+      "minRelativeDifference": 0.25
+    },
+    {
+      "claimCode": "REDUCED",
+      "nutrient": "NA",
+      "physicalState": "ANY",
+      "basis": "RELATIVE",
+      "minRelativeDifference": 0.25
+    },
+    {
+      "claimCode": "REDUCED",
+      "nutrient": "FASAT",
+      "physicalState": "ANY",
+      "basis": "RELATIVE",
+      "minRelativeDifference": 0.25
+    },
+    {
+      "claimCode": "REDUCED",
+      "nutrient": "FATRN",
+      "physicalState": "ANY",
+      "basis": "RELATIVE",
+      "minRelativeDifference": 0.25
+    },
+    {
+      "claimCode": "INCREASED",
+      "nutrient": "FIBTG",
+      "physicalState": "ANY",
+      "basis": "RELATIVE",
+      "minRelativeDifference": 0.25
+    },
+    {
+      "claimCode": "INCREASED",
+      "nutrient": "PROCNT",
+      "physicalState": "ANY",
+      "basis": "RELATIVE",
+      "minRelativeDifference": 0.25
+    }
+  ],
+  "models": [
+    "IN_INR_DRAFT@1.0",
+    "NUTRISCORE_2023@1.0"
+  ]
+}

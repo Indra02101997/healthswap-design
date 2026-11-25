@@ -1,0 +1,20 @@
+{
+  "name": "@healthswap/devdb",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zero-install local PostgreSQL for HealthSwap development: PGlite (Postgres compiled to WASM) behind the Postgres wire protocol.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "start:memory": "node server.mjs --memory",
+    "selftest": "node selftest.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "@electric-sql/pglite-pgvector": "0.0.17",
+    "@electric-sql/pglite-socket": "0.2.19"
+  }
+}

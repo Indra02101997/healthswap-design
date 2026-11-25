@@ -1,0 +1,3296 @@
+openapi: 3.1.0
+info:
+  title: HealthSwap Partner API
+  version: 1.0.0
+  summary: Healthier-alternative ("swap") decisioning for grocery and quick-commerce platforms.
+  description: |
+    The HealthSwap Partner API lets grocery and quick-commerce platforms ("partners"):
+
+    * sync their catalog and store inventory,
+    * evaluate shopper carts and receive healthier, in-stock, constraint-safe alternatives,
+    * report suggestion events and orders for attribution, and
+    * reconcile monthly fee statements.
+
+    ## Fees
+    Two contracted fee rules exist and can be enabled together (see docs/01-hld.md section 9 and
+    docs/06-recommended-label-and-add-fee.md):
+
+    * **FP-1** (default 10% of the fair premium) on delivered, non-returned accepted swaps.
+    * **RA-1** (default INR 1.00) every time the shopper adds a HealthSwap-recommended product to the cart. Every
+      alternative carries a `recommendation` label that the partner must render, and the partner reports each add with
+      an `ACCEPT` (swap accepted) or `ADD_TO_CART` (any other add of a recommended product) event. Charges are listed
+      under `GET /billing/recommendation-charges` and billed on the monthly statement.
+
+    ## Authentication
+    Server-to-server calls use OAuth 2.0 client credentials (`partnerOAuth`). Enterprise partners can also use
+    mutual TLS with certificate-bound tokens (RFC 8705). Client (UI) SDK calls use short-lived session tokens
+    minted by the partner backend through `POST /sdk/sessions` (`sdkSession`).
+
+    ## Conventions
+    * Money: decimal strings with an ISO 4217 currency, for example `{"amount": "56.00", "currency": "INR"}`.
+      All prices use the partner's contracted price basis (tax-inclusive or tax-exclusive). If fees are contracted
+      ex-tax on a tax-inclusive basis, send `taxRate` on cart and order lines.
+    * Timestamps: RFC 3339, UTC.
+    * Errors: RFC 9457 `application/problem+json` with a stable `code`.
+    * Idempotency: send `Idempotency-Key` on POST requests that create resources. Keys are retained for 24 hours.
+    * Pagination: `cursor` + `limit`. Responses include `nextCursor`.
+    * Tracing: W3C `traceparent` is accepted and propagated.
+    * Fail-open: callers must never block cart or checkout on this API. Recommended client timeout for
+      `POST /cart-evaluations` is 150 ms.
+
+    ## Webhooks
+    Webhooks are signed: `HealthSwap-Signature: t=<unix-seconds>,v1=<hex HMAC-SHA256(secret, t + "." + rawBody)>`.
+    Reject signatures older than 5 minutes. Delivery is at-least-once, so deduplicate on the envelope `id`.
+  contact:
+    name: HealthSwap Partner Engineering
+    email: partner-eng@healthswap.example
+  license:
+    name: Proprietary
+    url: https://healthswap.example/legal/api-terms
+servers:
+  - url: https://api.in.healthswap.example/v1
+    description: India geography (data resident in India)
+  - url: https://api.us.healthswap.example/v1
+    description: United States geography
+  - url: https://sandbox.healthswap.example/v1
+    description: Sandbox (synthetic data only)
+  - url: http://localhost:8080/v1
+    description: Local reference implementation (Python, src/healthswap; synthetic data)
+security:
+  - partnerOAuth: []
+tags:
+  - name: SDK Sessions
+    description: Short-lived tokens for client (UI) SDKs.
+  - name: Catalog
+    description: Partner catalog sync and matching to canonical products.
+  - name: Inventory
+    description: Store-level availability and prices (MIRROR availability mode).
+  - name: Products
+    description: Canonical product health profiles and alternatives.
+  - name: Cart Evaluations
+    description: Real-time healthier-swap suggestions for a cart.
+  - name: Events
+    description: Suggestion impressions, accepts, dismissals and undos.
+  - name: Orders
+    description: Orders, lifecycle updates, adjustments and attribution.
+  - name: Shoppers
+    description: Shopper preferences, consent and erasure (pseudonymous userRef only).
+  - name: Billing
+    description: Fee statements, statement lines and disputes.
+  - name: Transparency
+    description: Public methodology and service status.
+
+paths:
+  /sdk/sessions:
+    post:
+      tags: [SDK Sessions]
+      operationId: createSdkSession
+      summary: Mint a short-lived session token for the client SDK
+      description: |
+        Call this from the partner backend only. The token is bound to the given userRef, cartRef and storeId,
+        and only allows cart evaluations, events and product reads.
+      security:
+        - partnerOAuth: [sdk.sessions.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SdkSessionRequest'
+      responses:
+        '201':
+          description: Session created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SdkSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /catalog/item-batches:
+    post:
+      tags: [Catalog]
+      operationId: upsertCatalogItems
+      summary: Upsert up to 1,000 catalog items synchronously
+      description: |
+        Matching to canonical products runs inline. Enrichment (label OCR, curation) runs asynchronously and is
+        reported through the `catalog.match.review_required` and `product.health_profile.changed` webhooks.
+        For larger volumes use `POST /catalog/feeds`.
+      security:
+        - partnerOAuth: [catalog.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogBatchRequest'
+      responses:
+        '200':
+          description: Per-item results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogBatchResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /catalog/feeds:
+    post:
+      tags: [Catalog]
+      operationId: createCatalogFeed
+      summary: Create a bulk catalog feed job and get a pre-signed upload URL
+      description: |
+        Upload the file to `uploadUrl` with HTTP PUT before `uploadUrlExpiresAt`. Each JSONL line, CSV row or
+        Parquet record follows the `CatalogItem` schema. Processing starts automatically after upload.
+      security:
+        - partnerOAuth: [catalog.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedCreateRequest'
+      responses:
+        '201':
+          description: Feed job created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /catalog/feeds/{feedId}:
+    get:
+      tags: [Catalog]
+      operationId: getCatalogFeed
+      summary: Get feed job status and statistics
+      security:
+        - partnerOAuth: [catalog.read]
+      parameters:
+        - $ref: '#/components/parameters/FeedId'
+      responses:
+        '200':
+          description: Feed job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /catalog/items/{partnerSku}:
+    get:
+      tags: [Catalog]
+      operationId: getCatalogItem
+      summary: Get match state and health summary for one catalog item
+      security:
+        - partnerOAuth: [catalog.read]
+      parameters:
+        - $ref: '#/components/parameters/PartnerSku'
+      responses:
+        '200':
+          description: Catalog item status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogItemStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Catalog]
+      operationId: delistCatalogItem
+      summary: Delist an item (it will no longer be suggested)
+      security:
+        - partnerOAuth: [catalog.write]
+      parameters:
+        - $ref: '#/components/parameters/PartnerSku'
+      responses:
+        '204':
+          description: Delisted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /catalog/items/{partnerSku}/match:
+    put:
+      tags: [Catalog]
+      operationId: overrideCatalogMatch
+      summary: Confirm, reject or reassign the canonical-product match for an item
+      security:
+        - partnerOAuth: [catalog.write]
+      parameters:
+        - $ref: '#/components/parameters/PartnerSku'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchOverrideRequest'
+      responses:
+        '200':
+          description: Updated catalog item status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogItemStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+
+  /stores/{storeId}/inventory-batches:
+    post:
+      tags: [Inventory]
+      operationId: upsertStoreInventory
+      summary: Upsert availability and prices for a store (up to 5,000 entries)
+      description: |
+        Used in `MIRROR` availability mode. Entries older than the partner's staleness threshold (default 10 minutes)
+        are treated as unknown. `FULL_SNAPSHOT` marks SKUs missing from the batch as out of stock.
+      security:
+        - partnerOAuth: [inventory.write]
+      parameters:
+        - $ref: '#/components/parameters/StoreId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryBatchRequest'
+      responses:
+        '202':
+          description: Accepted for processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryBatchAck'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /products/lookup:
+    get:
+      tags: [Products]
+      operationId: lookupProduct
+      summary: Look up a product health profile by GTIN or partner SKU
+      security:
+        - partnerOAuth: [products.read]
+        - sdkSession: []
+      parameters:
+        - $ref: '#/components/parameters/MarketQuery'
+        - name: gtin
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Gtin'
+        - name: partnerSku
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PartnerSku'
+        - name: locale
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Locale'
+      responses:
+        '200':
+          description: Health profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/{productId}:
+    get:
+      tags: [Products]
+      operationId: getProductHealthProfile
+      summary: Get the health profile of a canonical product in a market
+      security:
+        - partnerOAuth: [products.read]
+        - sdkSession: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+        - $ref: '#/components/parameters/MarketQuery'
+      responses:
+        '200':
+          description: Health profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/{productId}/alternatives:
+    get:
+      tags: [Products]
+      operationId: listProductAlternatives
+      summary: List healthier alternatives for one product
+      description: |
+        If `storeId` is supplied, alternatives are limited to items the partner lists and has in stock there.
+        Every alternative carries a `recommendation` label. When `cartRef` is supplied (or the SDK session is bound to a
+        cart), the response also contains a `suggestionId` so that adding a recommended product to the cart can be
+        reported with an `ADD_TO_CART` event (RA-1 fee).
+      security:
+        - partnerOAuth: [products.read]
+        - sdkSession: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+        - $ref: '#/components/parameters/MarketQuery'
+        - name: storeId
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+        - name: cartRef
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 128
+        - name: userRef
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/UserRef'
+        - name: placement
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PDP, SEARCH]
+            default: PDP
+        - name: currency
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/CurrencyCode'
+        - name: locale
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Locale'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+      responses:
+        '200':
+          description: Alternatives.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlternativesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cart-evaluations:
+    post:
+      tags: [Cart Evaluations]
+      operationId: evaluateCart
+      summary: Evaluate a cart and get healthier-swap suggestions
+      description: |
+        The hot-path endpoint (server p99 target 150 ms). Always returns 200 when it can, using `degraded: true`
+        and possibly empty `suggestions` under partial failure. Callers must fail open on timeouts and errors.
+      security:
+        - partnerOAuth: [carts.evaluate]
+        - sdkSession: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartEvaluationRequest'
+            example:
+              cartRef: c_7f3a91
+              userRef: u_4c1b9e2f7d0a
+              market: IN
+              storeId: BLR-KOR-012
+              currency: INR
+              locale: en-IN
+              availabilityMode: MIRROR
+              context:
+                placement: CHECKOUT
+                channel: ANDROID
+                maxSuggestions: 3
+              lines:
+                - lineId: '1'
+                  partnerSku: SKU-NDL-280
+                  gtin: '8901234567890'
+                  quantity: 2
+                  unitPrice:
+                    amount: '56.00'
+                    currency: INR
+                - lineId: '2'
+                  partnerSku: SKU-COLA-750
+                  quantity: 1
+                  unitPrice:
+                    amount: '40.00'
+                    currency: INR
+      responses:
+        '200':
+          description: Evaluation result (possibly degraded).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartEvaluation'
+              example:
+                evaluationId: 0193f0c2-7a10-7c2e-9d51-3b8f2a6c4e10
+                cartRef: c_7f3a91
+                market: IN
+                storeId: BLR-KOR-012
+                createdAt: '2026-11-04T10:15:30Z'
+                expiresAt: '2026-11-04T10:45:30Z'
+                degraded: false
+                summary:
+                  linesTotal: 2
+                  linesResolved: 2
+                  linesScored: 2
+                  linesWithSuggestions: 1
+                  cartHsi: 38.5
+                suggestions:
+                  - suggestionId: 0193f0c2-7a11-7d01-8c11-2a9e4b7f1a22
+                    lineId: '1'
+                    expiresAt: '2026-11-04T10:45:30Z'
+                    original:
+                      partnerSku: SKU-NDL-280
+                      productId: 5b0c2f9e-3a1d-4f0e-9a6b-1c2d3e4f5a6b
+                      title: Masala instant noodles 4-pack 280 g
+                      netQuantity:
+                        value: 280
+                        unit: g
+                      health:
+                        productId: 5b0c2f9e-3a1d-4f0e-9a6b-1c2d3e4f5a6b
+                        hsi: 31.0
+                        hsiGrade: E
+                        flags: [HIGH_SODIUM, ULTRA_PROCESSED]
+                        dataSufficiency: SUFFICIENT
+                    alternatives:
+                      - rank: 1
+                        product:
+                          partnerSku: SKU-MLT-256
+                          productId: 9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b
+                          title: Millet masala noodles 4-pack 256 g
+                          netQuantity:
+                            value: 256
+                            unit: g
+                          health:
+                            productId: 9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b
+                            hsi: 47.5
+                            hsiGrade: D
+                            flags: [HIGH_FIBRE]
+                            dataSufficiency: SUFFICIENT
+                        unitPrice:
+                          amount: '89.00'
+                          currency: INR
+                        unitPriceDelta:
+                          amount: '33.00'
+                          currency: INR
+                        normalizedPriceRatio: 1.74
+                        healthDelta: 16.5
+                        reasonCodes: [HIGHER_FIBRE, LOWER_SODIUM]
+                        recommendation:
+                          code: HEALTHSWAP_RECOMMENDED
+                          text: Recommended by HealthSwap
+                          shortText: HealthSwap pick
+                          disclosure: HealthSwap may receive a fee from the retailer when you add a recommended item to your cart or buy a suggested swap. Recommendations are ranked on nutrition, not fees.
+                          chargeable: true
+                          feeRule: RA-1
+                        explanation:
+                          short: 3x the fibre per 100 g (6.1 g vs 2.0 g)
+                          details:
+                            - nutrient: dietaryFibreG
+                              basis: PER_100G
+                              from: 2.0
+                              to: 6.1
+                              unit: g
+                              relativeChange: 2.05
+                              direction: BETTER
+                            - nutrient: sodiumMg
+                              basis: PER_100G
+                              from: 1200
+                              to: 1050
+                              unit: mg
+                              relativeChange: -0.125
+                              direction: BETTER
+                          generator: TEMPLATE
+                          aiGenerated: false
+                          locale: en-IN
+                          methodologyUrl: https://healthswap.example/methodology/IN/v1
+                          disclaimer: Based on pack label data per 100 g. Always check the label, especially for allergies.
+                        sponsored: false
+                        requiresAvailabilityCheck: false
+                        suggestedQuantity: 2
+                lineLabels: []
+                disclosures:
+                  feeDisclosure: HealthSwap may receive a fee from the retailer when you add a recommended item to your cart or buy a suggested swap. Recommendations are ranked on nutrition, not fees.
+                  labelDisclaimer: Based on pack label data. Always check the label, especially for allergies.
+                  methodologyUrl: https://healthswap.example/methodology/IN/v1
+                  attributions:
+                    - source: Open Food Facts
+                      license: ODbL-1.0
+                      attributionText: Contains data from Open Food Facts, available under the Open Database License.
+                modelVersions:
+                  scoring: 'IN_INR_DRAFT@1.2+HSI@1.0'
+                  rules: R-1.3
+                  swapGraph: 'IN-2026-11-04T02:00Z'
+                  ranker: rk-2026-10-28
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /cart-evaluations/{evaluationId}:
+    get:
+      tags: [Cart Evaluations]
+      operationId: getCartEvaluation
+      summary: Re-read an evaluation before it expires
+      security:
+        - partnerOAuth: [carts.evaluate]
+        - sdkSession: []
+      parameters:
+        - $ref: '#/components/parameters/EvaluationId'
+      responses:
+        '200':
+          description: Evaluation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartEvaluation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /events:
+    post:
+      tags: [Events]
+      operationId: reportSuggestionEvents
+      summary: Report suggestion events (batched, up to 500)
+      description: |
+        Count an impression only when the suggestion was at least 50% visible for at least 1 second. An `ACCEPT`
+        event is required for attribution. Events are deduplicated by `eventId`.
+
+        Recommendation-add fee (RA-1): send `ACCEPT` when the shopper accepts a swap (the alternative is added to the
+        cart) and `ADD_TO_CART` every other time the shopper adds a HealthSwap-recommended product to the cart (for
+        example re-adding it, adding it from a product page, or tapping "+"). Each such event creates one charge,
+        which becomes `FINAL` after the settlement window unless an `UNDO` arrives within the undo grace period.
+        Server-to-server callers receive the created charges in `charges`.
+      security:
+        - partnerOAuth: [events.write]
+        - sdkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventBatchRequest'
+      responses:
+        '202':
+          description: Accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventBatchResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /orders:
+    post:
+      tags: [Orders]
+      operationId: createOrder
+      summary: Report a placed order
+      description: |
+        Send every order: orders without suggestions are used for experiment measurement, such as AOV in the
+        holdout. Lines that result from an accepted suggestion must carry `suggestionId`. The order is idempotent
+        on `orderId`, and an `Idempotency-Key` is also required.
+      security:
+        - partnerOAuth: [orders.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+            example:
+              orderId: ORD-20261104-000123
+              cartRef: c_7f3a91
+              userRef: u_4c1b9e2f7d0a
+              storeId: BLR-KOR-012
+              market: IN
+              currency: INR
+              placedAt: '2026-11-04T10:18:02Z'
+              fulfillmentType: QUICK_COMMERCE
+              orderDiscount:
+                amount: '8.00'
+                currency: INR
+              lines:
+                - lineId: '1'
+                  partnerSku: SKU-MLT-256
+                  quantity: 2
+                  unitPrice:
+                    amount: '89.00'
+                    currency: INR
+                  lineDiscount:
+                    amount: '0.00'
+                    currency: INR
+                  allocatedOrderDiscount:
+                    amount: '8.00'
+                    currency: INR
+                  netAmount:
+                    amount: '170.00'
+                    currency: INR
+                  suggestionId: 0193f0c2-7a11-7d01-8c11-2a9e4b7f1a22
+                - lineId: '2'
+                  partnerSku: SKU-COLA-750
+                  quantity: 1
+                  unitPrice:
+                    amount: '40.00'
+                    currency: INR
+                  netAmount:
+                    amount: '40.00'
+                    currency: INR
+      responses:
+        '201':
+          description: Order recorded with provisional attribution.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      operationId: getOrder
+      summary: Get an order with its attribution
+      security:
+        - partnerOAuth: [orders.read]
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Orders]
+      operationId: updateOrderStatus
+      summary: Update order status (confirmed, partially fulfilled, delivered, cancelled)
+      security:
+        - partnerOAuth: [orders.write]
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+      responses:
+        '200':
+          description: Updated order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /orders/{orderId}/adjustments:
+    post:
+      tags: [Orders]
+      operationId: createOrderAdjustments
+      summary: Report returns, refunds, price adjustments, picker substitutions or line cancellations
+      security:
+        - partnerOAuth: [orders.write]
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderAdjustmentRequest'
+      responses:
+        '202':
+          description: Accepted. Returns the recomputed attribution.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributionSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /orders/{orderId}/attribution:
+    get:
+      tags: [Orders]
+      operationId: getOrderAttribution
+      summary: Get fee attribution for an order
+      security:
+        - partnerOAuth: [orders.read]
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Attribution.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributionSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userRef}/preferences:
+    get:
+      tags: [Shoppers]
+      operationId: getShopperPreferences
+      summary: Get stored shopper preferences
+      security:
+        - partnerOAuth: [users.read]
+      parameters:
+        - $ref: '#/components/parameters/UserRef'
+      responses:
+        '200':
+          description: Preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Shoppers]
+      operationId: putShopperPreferences
+      summary: Create or replace shopper preferences
+      description: |
+        Health-related fields (allergens, goals) are stored only when `healthDataConsent` is true. Personalization
+        uses behavioral signals only when `personalizationConsent` is true and the shopper is not a minor.
+      security:
+        - partnerOAuth: [users.write]
+      parameters:
+        - $ref: '#/components/parameters/UserRef'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Stored preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/{userRef}:
+    delete:
+      tags: [Shoppers]
+      operationId: eraseShopper
+      summary: Erase all personal data linked to a userRef
+      description: |
+        Preferences and consents are deleted, and the userRef is removed from events and orders. Aggregated and
+        finalized billing records keep no userRef. Completion is signaled by the `user.erasure.completed` webhook.
+      security:
+        - partnerOAuth: [users.write]
+      parameters:
+        - $ref: '#/components/parameters/UserRef'
+      responses:
+        '202':
+          description: Erasure request accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErasureRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /billing/statements:
+    get:
+      tags: [Billing]
+      operationId: listStatements
+      summary: List fee statements
+      security:
+        - partnerOAuth: [billing.read]
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Billing month (YYYY-MM).
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/StatementStatus'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Statements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatementList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /billing/statements/{statementId}:
+    get:
+      tags: [Billing]
+      operationId: getStatement
+      summary: Get a statement
+      security:
+        - partnerOAuth: [billing.read]
+      parameters:
+        - $ref: '#/components/parameters/StatementId'
+      responses:
+        '200':
+          description: Statement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statement'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /billing/statements/{statementId}/lines:
+    get:
+      tags: [Billing]
+      operationId: listStatementLines
+      summary: List statement lines for reconciliation
+      security:
+        - partnerOAuth: [billing.read]
+      parameters:
+        - $ref: '#/components/parameters/StatementId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Statement lines.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatementLinePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /billing/statements/{statementId}/recommendation-charges:
+    get:
+      tags: [Billing]
+      operationId: listStatementRecommendationCharges
+      summary: List the RA-1 recommendation-add charges billed on a statement
+      security:
+        - partnerOAuth: [billing.read]
+      parameters:
+        - $ref: '#/components/parameters/StatementId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Recommendation charges.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationChargePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /billing/recommendation-charges:
+    get:
+      tags: [Billing]
+      operationId: listRecommendationCharges
+      summary: List RA-1 recommendation-add charges (real-time reconciliation)
+      description: |
+        One charge is created for every `ACCEPT` / `ADD_TO_CART` event that references a HealthSwap-recommended
+        alternative. `PENDING` charges become `FINAL` (billable) after the settlement window, `VOID` when undone within
+        the undo grace period, or `REJECTED` when the evidence chain is incomplete (see `rejectionReason`).
+      security:
+        - partnerOAuth: [billing.read]
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Month of the add event (YYYY-MM, UTC).
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/RecommendationChargeState'
+        - name: cartRef
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 128
+        - name: suggestionId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Recommendation charges, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationChargePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /billing/recommendation-charges/{chargeId}:
+    get:
+      tags: [Billing]
+      operationId: getRecommendationCharge
+      summary: Get one RA-1 recommendation-add charge
+      security:
+        - partnerOAuth: [billing.read]
+      parameters:
+        - name: chargeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recommendation charge.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationCharge'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /billing/disputes:
+    post:
+      tags: [Billing]
+      operationId: createDispute
+      summary: Dispute statement lines
+      security:
+        - partnerOAuth: [billing.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisputeRequest'
+      responses:
+        '201':
+          description: Dispute opened.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispute'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+
+  /billing/disputes/{disputeId}:
+    get:
+      tags: [Billing]
+      operationId: getDispute
+      summary: Get a dispute
+      security:
+        - partnerOAuth: [billing.read]
+      parameters:
+        - $ref: '#/components/parameters/DisputeId'
+      responses:
+        '200':
+          description: Dispute.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispute'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /scoring-models:
+    get:
+      tags: [Transparency]
+      operationId: listScoringModels
+      summary: List active scoring models and versions (public methodology transparency)
+      security: []
+      parameters:
+        - name: market
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Market'
+      responses:
+        '200':
+          description: Scoring models.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringModelList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /status:
+    get:
+      tags: [Transparency]
+      operationId: getServiceStatus
+      summary: Service status per region
+      security: []
+      responses:
+        '200':
+          description: Status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceStatus'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+webhooks:
+  catalogMatchReviewRequired:
+    post:
+      operationId: onCatalogMatchReviewRequired
+      summary: Some catalog items need partner review (ambiguous match or missing data)
+      parameters:
+        - $ref: '#/components/parameters/WebhookSignature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/WebhookEnvelope'
+                - type: object
+                  properties:
+                    type:
+                      const: catalog.match.review_required
+                    data:
+                      $ref: '#/components/schemas/CatalogReviewWebhookData'
+      responses:
+        '204':
+          description: Acknowledged. Any 2xx response acknowledges delivery.
+  productHealthProfileChanged:
+    post:
+      operationId: onProductHealthProfileChanged
+      summary: A product listed by the partner has a new health profile version
+      parameters:
+        - $ref: '#/components/parameters/WebhookSignature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/WebhookEnvelope'
+                - type: object
+                  properties:
+                    type:
+                      const: product.health_profile.changed
+                    data:
+                      $ref: '#/components/schemas/ProductProfileChangedWebhookData'
+      responses:
+        '204':
+          description: Acknowledged.
+  billingStatementIssued:
+    post:
+      operationId: onBillingStatementIssued
+      summary: A monthly statement has been issued
+      parameters:
+        - $ref: '#/components/parameters/WebhookSignature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/WebhookEnvelope'
+                - type: object
+                  properties:
+                    type:
+                      const: billing.statement.issued
+                    data:
+                      $ref: '#/components/schemas/StatementIssuedWebhookData'
+      responses:
+        '204':
+          description: Acknowledged.
+  billingDisputeUpdated:
+    post:
+      operationId: onBillingDisputeUpdated
+      summary: A dispute changed status
+      parameters:
+        - $ref: '#/components/parameters/WebhookSignature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/WebhookEnvelope'
+                - type: object
+                  properties:
+                    type:
+                      const: billing.dispute.updated
+                    data:
+                      $ref: '#/components/schemas/DisputeUpdatedWebhookData'
+      responses:
+        '204':
+          description: Acknowledged.
+  userErasureCompleted:
+    post:
+      operationId: onUserErasureCompleted
+      summary: An erasure request has completed
+      parameters:
+        - $ref: '#/components/parameters/WebhookSignature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/WebhookEnvelope'
+                - type: object
+                  properties:
+                    type:
+                      const: user.erasure.completed
+                    data:
+                      $ref: '#/components/schemas/ErasureCompletedWebhookData'
+      responses:
+        '204':
+          description: Acknowledged.
+
+components:
+  securitySchemes:
+    partnerOAuth:
+      type: oauth2
+      description: OAuth 2.0 client credentials. Access tokens are JWTs with a 10-minute TTL, bound to the geography audience.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.healthswap.example/oauth2/token
+          scopes:
+            catalog.write: Upsert catalog items and feeds
+            catalog.read: Read catalog feeds and match status
+            inventory.write: Upsert store availability and prices
+            products.read: Read product health profiles and alternatives
+            carts.evaluate: Evaluate carts
+            events.write: Report suggestion events
+            orders.write: Report orders, status updates and adjustments
+            orders.read: Read orders and attribution
+            users.write: Manage shopper preferences and erasure
+            users.read: Read shopper preferences
+            billing.read: Read statements and disputes
+            billing.write: Open disputes
+            sdk.sessions.write: Mint client SDK session tokens
+    sdkSession:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Short-lived (up to 15 minutes) session token minted with POST /sdk/sessions. It is bound to one userRef,
+        cartRef and storeId, and allows only cart evaluations, events and product reads.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Unique key (UUID recommended) that makes the request idempotent for 24 hours. Required for POST /orders.
+      schema:
+        type: string
+        maxLength: 128
+    WebhookSignature:
+      name: HealthSwap-Signature
+      in: header
+      required: true
+      description: 't=<unix-seconds>,v1=<hex HMAC-SHA256(secret, t + "." + rawBody)>. Reject when older than 5 minutes.'
+      schema:
+        type: string
+    PartnerSku:
+      name: partnerSku
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/PartnerSku'
+    StoreId:
+      name: storeId
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 64
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    EvaluationId:
+      name: evaluationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FeedId:
+      name: feedId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 64
+    UserRef:
+      name: userRef
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/UserRef'
+    StatementId:
+      name: statementId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DisputeId:
+      name: disputeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MarketQuery:
+      name: market
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/Market'
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 100
+
+  headers:
+    RetryAfter:
+      description: Seconds to wait before retrying.
+      schema:
+        type: integer
+    RateLimitLimit:
+      description: Request quota for the current window.
+      schema:
+        type: integer
+    RateLimitRemaining:
+      description: Requests remaining in the current window.
+      schema:
+        type: integer
+    RateLimitReset:
+      description: Seconds until the quota window resets.
+      schema:
+        type: integer
+
+  responses:
+    BadRequest:
+      description: The request is malformed or failed validation (code HS-REQ-INVALID or HS-REQ-TOO-LARGE).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: Missing or invalid credentials (code HS-AUTH-INVALID).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: The token lacks the required scope (code HS-AUTH-SCOPE).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Resource not found or not visible to this partner (code HS-NOT-FOUND).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Idempotency conflict or invalid state transition (codes HS-IDEMPOTENCY-CONFLICT, HS-ORDER-STATE).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unprocessable:
+      description: Semantically invalid request (for example HS-UNKNOWN-STORE, HS-ATTRIBUTION-REJECTED).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: Rate limit exceeded (code HS-RATE-LIMITED).
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+        RateLimit-Limit:
+          $ref: '#/components/headers/RateLimitLimit'
+        RateLimit-Remaining:
+          $ref: '#/components/headers/RateLimitRemaining'
+        RateLimit-Reset:
+          $ref: '#/components/headers/RateLimitReset'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ServiceUnavailable:
+      description: Temporarily unavailable (code HS-DEGRADED). Fail open.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    # ---------- Primitives ----------
+    Market:
+      type: string
+      description: ISO 3166-1 alpha-2 market code where the cart is evaluated.
+      pattern: '^[A-Z]{2}$'
+      examples: [IN]
+    CurrencyCode:
+      type: string
+      description: ISO 4217 currency code.
+      pattern: '^[A-Z]{3}$'
+      examples: [INR]
+    Locale:
+      type: string
+      description: BCP 47 language tag.
+      pattern: '^[a-z]{2,3}(-[A-Z]{2})?$'
+      examples: [hi-IN]
+    Gtin:
+      type: string
+      description: GTIN-8, -12, -13 or -14 (digits only). Normalized to GTIN-14 internally.
+      pattern: '^(\d{8}|\d{12}|\d{13}|\d{14})$'
+      examples: ['8901234567890']
+    PartnerSku:
+      type: string
+      minLength: 1
+      maxLength: 64
+    UserRef:
+      type: string
+      description: |
+        Partner-generated pseudonymous identifier, for example HMAC-SHA256 of the partner's internal user id with a
+        partner-held key. Never an email address, phone number or name.
+      pattern: '^[A-Za-z0-9_-]{8,128}$'
+    Money:
+      type: object
+      required: [amount, currency]
+      additionalProperties: false
+      properties:
+        amount:
+          type: string
+          description: Decimal amount as a string.
+          pattern: '^-?\d+(\.\d{1,4})?$'
+          examples: ['56.00']
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+    NetQuantity:
+      type: object
+      required: [value, unit]
+      additionalProperties: false
+      properties:
+        value:
+          type: number
+          exclusiveMinimum: 0
+        unit:
+          type: string
+          enum: [g, kg, ml, l, pcs]
+    DietaryMark:
+      type: string
+      enum: [VEG, NON_VEG, EGG, VEGAN, ORGANIC, FORTIFIED, HALAL, KOSHER, GLUTEN_FREE]
+    AllergenCode:
+      type: string
+      enum: [GLUTEN_CEREALS, WHEAT, CRUSTACEANS, MOLLUSCS, EGGS, FISH, PEANUTS, TREE_NUTS, SOY, MILK, SESAME, MUSTARD, CELERY, LUPIN, SULPHITES]
+    DataSufficiency:
+      type: string
+      enum: [SUFFICIENT, PARTIAL, INSUFFICIENT]
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          description: JSON Pointer to the offending field.
+        message:
+          type: string
+        code:
+          type: string
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          type: string
+          examples: [HS-REQ-INVALID]
+        traceId:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    # ---------- Nutrition & health ----------
+    NutritionPanel:
+      type: object
+      required: [basis]
+      properties:
+        basis:
+          type: string
+          enum: [PER_100G, PER_100ML, PER_SERVING]
+        servingSize:
+          $ref: '#/components/schemas/NetQuantity'
+        energyKcal:
+          type: [number, 'null']
+          minimum: 0
+        proteinG:
+          type: [number, 'null']
+          minimum: 0
+        carbohydrateG:
+          type: [number, 'null']
+          minimum: 0
+        totalSugarsG:
+          type: [number, 'null']
+          minimum: 0
+        addedSugarsG:
+          type: [number, 'null']
+          minimum: 0
+        totalFatG:
+          type: [number, 'null']
+          minimum: 0
+        saturatedFatG:
+          type: [number, 'null']
+          minimum: 0
+        transFatG:
+          type: [number, 'null']
+          minimum: 0
+        cholesterolMg:
+          type: [number, 'null']
+          minimum: 0
+        sodiumMg:
+          type: [number, 'null']
+          minimum: 0
+        saltG:
+          type: [number, 'null']
+          minimum: 0
+        dietaryFibreG:
+          type: [number, 'null']
+          minimum: 0
+        other:
+          type: array
+          description: Additional declared nutrients keyed by INFOODS tagname (for example VITD, CA, FE, K).
+          items:
+            type: object
+            required: [code, amount, unit]
+            properties:
+              code:
+                type: string
+              amount:
+                type: number
+                minimum: 0
+              unit:
+                type: string
+                enum: [g, mg, ug, kcal, kJ, percent]
+    HealthScore:
+      type: object
+      required: [model, version]
+      properties:
+        model:
+          type: string
+          description: Scoring model code (see GET /scoring-models).
+          examples: [IN_INR_DRAFT]
+        version:
+          type: string
+        value:
+          type: [number, 'null']
+        grade:
+          type: [string, 'null']
+          description: Grade, stars or band, depending on the model.
+        components:
+          type: object
+          additionalProperties: true
+    Badge:
+      type: object
+      required: [code, label, tone]
+      properties:
+        code:
+          type: string
+          examples: [HIGH_SUGAR]
+        label:
+          type: string
+        tone:
+          type: string
+          enum: [POSITIVE, NEUTRAL, CAUTION]
+    AllergenInfo:
+      type: object
+      required: [code, presence]
+      properties:
+        code:
+          $ref: '#/components/schemas/AllergenCode'
+        presence:
+          type: string
+          enum: [CONTAINS, MAY_CONTAIN, FREE_FROM]
+    AdditiveInfo:
+      type: object
+      required: [name, concernTier]
+      properties:
+        insNumber:
+          type: [string, 'null']
+        eNumber:
+          type: [string, 'null']
+        name:
+          type: string
+        functionalClass:
+          type: [string, 'null']
+        concernTier:
+          type: string
+          enum: [A, B, C, D]
+    DataAttribution:
+      type: object
+      required: [source, license, attributionText]
+      properties:
+        source:
+          type: string
+        license:
+          type: string
+        attributionText:
+          type: string
+    HealthProfileSummary:
+      type: object
+      required: [productId, dataSufficiency]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        hsi:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 100
+        hsiGrade:
+          type: [string, 'null']
+          enum: [A, B, C, D, E, null]
+        primaryScore:
+          $ref: '#/components/schemas/HealthScore'
+        flags:
+          type: array
+          description: |
+            Extensible flag codes, for example HIGH_SUGAR, HIGH_SODIUM, HIGH_SAT_FAT, CONTAINS_TRANS_FAT,
+            ULTRA_PROCESSED, ARTIFICIAL_COLOURS, NON_SUGAR_SWEETENERS, WHOLE_GRAIN, HIGH_FIBRE, HIGH_PROTEIN, RECALLED.
+          items:
+            type: string
+        dataSufficiency:
+          $ref: '#/components/schemas/DataSufficiency'
+    HealthProfile:
+      type: object
+      required: [productId, market, dataSufficiency, profileVersion, computedAt]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        market:
+          $ref: '#/components/schemas/Market'
+        gtin:
+          type: [string, 'null']
+        displayName:
+          type: string
+        brand:
+          type: [string, 'null']
+        category:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        netQuantity:
+          $ref: '#/components/schemas/NetQuantity'
+        hsi:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 100
+        hsiGrade:
+          type: [string, 'null']
+          enum: [A, B, C, D, E, null]
+        primaryScore:
+          $ref: '#/components/schemas/HealthScore'
+        scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/HealthScore'
+        novaGroup:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 4
+        flags:
+          type: array
+          items:
+            type: string
+        badges:
+          type: array
+          items:
+            $ref: '#/components/schemas/Badge'
+        nutrition:
+          type: array
+          items:
+            $ref: '#/components/schemas/NutritionPanel'
+        allergens:
+          type: array
+          items:
+            $ref: '#/components/schemas/AllergenInfo'
+        dietaryMarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DietaryMark'
+        additives:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdditiveInfo'
+        usFdaHealthyEligible:
+          type: [boolean, 'null']
+          description: US only. True if the product meets the FDA "healthy" nutrient content claim criteria.
+        recalled:
+          type: boolean
+          default: false
+        dataSufficiency:
+          $ref: '#/components/schemas/DataSufficiency'
+        dataConfidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        attributions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataAttribution'
+        profileVersion:
+          type: string
+        computedAt:
+          type: string
+          format: date-time
+
+    # ---------- Catalog ----------
+    CatalogItem:
+      type: object
+      required: [partnerSku, title]
+      properties:
+        partnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        gtin:
+          $ref: '#/components/schemas/Gtin'
+        title:
+          type: string
+          maxLength: 300
+        brand:
+          type: string
+          maxLength: 120
+        categoryPath:
+          type: array
+          description: Partner category path from root to leaf.
+          items:
+            type: string
+        netQuantity:
+          $ref: '#/components/schemas/NetQuantity'
+        packCount:
+          type: integer
+          minimum: 1
+          default: 1
+        physicalState:
+          type: string
+          enum: [SOLID, LIQUID, MIXED]
+        markets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Market'
+        images:
+          type: array
+          maxItems: 20
+          description: HTTPS URLs on partner CDN domains registered during onboarding (allowlisted, fetched through an egress proxy).
+          items:
+            type: object
+            required: [url, kind]
+            properties:
+              url:
+                type: string
+                format: uri
+              kind:
+                type: string
+                enum: [FRONT, BACK, NUTRITION, INGREDIENTS, OTHER]
+        ingredientsText:
+          type: string
+          maxLength: 5000
+        allergenStatement:
+          type: string
+          maxLength: 1000
+        nutrition:
+          type: array
+          items:
+            $ref: '#/components/schemas/NutritionPanel'
+        dietaryMarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/DietaryMark'
+        fssaiLicenseNumbers:
+          type: array
+          items:
+            type: string
+            pattern: '^\d{14}$'
+        isPrivateLabel:
+          type: boolean
+          default: false
+        isListed:
+          type: boolean
+          default: true
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+    CatalogBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/CatalogItem'
+    MatchResult:
+      type: object
+      required: [state, method, confidence, dataSufficiency]
+      properties:
+        state:
+          type: string
+          enum: [PENDING, AUTO_MATCHED, NEEDS_REVIEW, CONFIRMED, REJECTED, UNMATCHED, PENDING_ENRICHMENT]
+        method:
+          type: string
+          enum: [GTIN_EXACT, GTIN_NORMALIZED, FUZZY, MANUAL, NONE]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        productId:
+          type: [string, 'null']
+          format: uuid
+        dataSufficiency:
+          $ref: '#/components/schemas/DataSufficiency'
+    CatalogItemResult:
+      type: object
+      required: [partnerSku, status]
+      properties:
+        partnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        status:
+          type: string
+          enum: [ACCEPTED, REJECTED]
+        match:
+          $ref: '#/components/schemas/MatchResult'
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+    CatalogBatchResult:
+      type: object
+      required: [batchId, received, accepted, rejected, results]
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        received:
+          type: integer
+        accepted:
+          type: integer
+        rejected:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogItemResult'
+    CatalogItemStatus:
+      type: object
+      required: [partnerSku, isListed, match, updatedAt]
+      properties:
+        partnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        isListed:
+          type: boolean
+        match:
+          $ref: '#/components/schemas/MatchResult'
+        health:
+          oneOf:
+            - $ref: '#/components/schemas/HealthProfileSummary'
+            - type: 'null'
+        updatedAt:
+          type: string
+          format: date-time
+    MatchOverrideRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [CONFIRM, REJECT, ASSIGN]
+        productId:
+          type: string
+          format: uuid
+          description: Required when action is ASSIGN.
+        comment:
+          type: string
+          maxLength: 1000
+    FeedCreateRequest:
+      type: object
+      required: [format, mode]
+      properties:
+        format:
+          type: string
+          enum: [JSONL, CSV, PARQUET]
+        compression:
+          type: string
+          enum: [NONE, GZIP]
+          default: GZIP
+        mode:
+          type: string
+          enum: [FULL, DELTA]
+          description: FULL delists partner SKUs that are missing from the file.
+        expectedItems:
+          type: integer
+          minimum: 1
+    FeedStats:
+      type: object
+      properties:
+        received:
+          type: integer
+        accepted:
+          type: integer
+        rejected:
+          type: integer
+        autoMatched:
+          type: integer
+        needsReview:
+          type: integer
+        unmatched:
+          type: integer
+        pendingEnrichment:
+          type: integer
+    Feed:
+      type: object
+      required: [feedId, status, createdAt]
+      properties:
+        feedId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [AWAITING_UPLOAD, PROCESSING, COMPLETED, PARTIAL, FAILED, EXPIRED]
+        uploadUrl:
+          type: [string, 'null']
+          format: uri
+        uploadUrlExpiresAt:
+          type: [string, 'null']
+          format: date-time
+        stats:
+          $ref: '#/components/schemas/FeedStats'
+        errorReportUrl:
+          type: [string, 'null']
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: [string, 'null']
+          format: date-time
+
+    # ---------- Inventory ----------
+    InventoryEntry:
+      type: object
+      required: [partnerSku, inStock, price]
+      properties:
+        partnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        inStock:
+          type: boolean
+        availableQuantity:
+          type: [integer, 'null']
+          minimum: 0
+        price:
+          $ref: '#/components/schemas/Money'
+        mrp:
+          $ref: '#/components/schemas/Money'
+        maxOrderQuantity:
+          type: [integer, 'null']
+          minimum: 1
+    InventoryBatchRequest:
+      type: object
+      required: [snapshotAt, mode, entries]
+      properties:
+        snapshotAt:
+          type: string
+          format: date-time
+        mode:
+          type: string
+          enum: [UPSERT, FULL_SNAPSHOT]
+        entries:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          items:
+            $ref: '#/components/schemas/InventoryEntry'
+    InventoryBatchAck:
+      type: object
+      required: [accepted, rejected]
+      properties:
+        accepted:
+          type: integer
+        rejected:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              partnerSku:
+                type: string
+              code:
+                type: string
+              message:
+                type: string
+
+    # ---------- Shopper preferences ----------
+    UserPreferences:
+      type: object
+      properties:
+        dietType:
+          type: string
+          enum: [ANY, VEGETARIAN, EGGETARIAN, VEGAN, JAIN, PESCATARIAN]
+          default: ANY
+        allergens:
+          type: array
+          items:
+            $ref: '#/components/schemas/AllergenCode'
+        strictMayContain:
+          type: boolean
+          default: true
+          description: When true, products labeled "may contain" a declared allergen are excluded.
+        goals:
+          type: array
+          items:
+            type: string
+            enum: [LOWER_SUGAR, LOWER_SODIUM, LOWER_SAT_FAT, HIGHER_PROTEIN, HIGHER_FIBRE, LESS_PROCESSED, FEWER_ADDITIVES]
+        avoidIngredients:
+          type: array
+          items:
+            type: string
+            enum: [NON_SUGAR_SWEETENERS, ARTIFICIAL_COLOURS, PALM_OIL, ADDED_MSG, CAFFEINE]
+        excludedBrands:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+        religiousPreferences:
+          type: array
+          items:
+            type: string
+            enum: [HALAL, KOSHER]
+        locale:
+          $ref: '#/components/schemas/Locale'
+        isMinor:
+          type: [boolean, 'null']
+          description: True or unknown (null) disables personalization under the partner's strict minors policy.
+        healthDataConsent:
+          type: boolean
+          default: false
+          description: Shopper consent to process health-related preferences (allergens, goals).
+        personalizationConsent:
+          type: boolean
+          default: false
+        consentNoticeVersion:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+    ErasureRequest:
+      type: object
+      required: [requestId, status, receivedAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [RECEIVED, IN_PROGRESS, COMPLETED]
+        receivedAt:
+          type: string
+          format: date-time
+
+    # ---------- SDK sessions ----------
+    SdkSessionRequest:
+      type: object
+      required: [cartRef, market]
+      properties:
+        userRef:
+          $ref: '#/components/schemas/UserRef'
+        cartRef:
+          type: string
+          maxLength: 128
+        storeId:
+          type: string
+          maxLength: 64
+        market:
+          $ref: '#/components/schemas/Market'
+        scopes:
+          type: array
+          items:
+            type: string
+            enum: [carts.evaluate, events.write, products.read]
+        ttlSeconds:
+          type: integer
+          minimum: 60
+          maximum: 900
+          default: 900
+    SdkSession:
+      type: object
+      required: [token, tokenType, expiresAt, scopes]
+      properties:
+        token:
+          type: string
+        tokenType:
+          type: string
+          const: Bearer
+        expiresAt:
+          type: string
+          format: date-time
+        scopes:
+          type: array
+          items:
+            type: string
+
+    # ---------- Cart evaluation ----------
+    CartLine:
+      type: object
+      required: [lineId, partnerSku, quantity, unitPrice]
+      properties:
+        lineId:
+          type: string
+          maxLength: 64
+        partnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        gtin:
+          $ref: '#/components/schemas/Gtin'
+        title:
+          type: string
+          maxLength: 300
+          description: Optional; helps resolve items not yet in the synced catalog.
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+        unitPrice:
+          $ref: '#/components/schemas/Money'
+        lineDiscount:
+          $ref: '#/components/schemas/Money'
+        taxRate:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Optional tax rate for converting tax-inclusive prices when fees are contracted ex-tax.
+        isSubstitutable:
+          type: boolean
+          default: true
+          description: False for items the shopper locked (for example from a reorder list or prescription diet).
+    CartContext:
+      type: object
+      properties:
+        placement:
+          type: string
+          enum: [CART, CHECKOUT, PDP, SEARCH, AGENT]
+          default: CART
+        channel:
+          type: string
+          enum: [ANDROID, IOS, WEB, AGENT, OTHER]
+        appVersion:
+          type: string
+        experimentArm:
+          type: string
+          description: Partner-assigned arm, if the partner runs its own experimentation.
+        isMinor:
+          type: [boolean, 'null']
+        maxSuggestions:
+          type: integer
+          minimum: 0
+          maximum: 10
+    CartEvaluationRequest:
+      type: object
+      required: [cartRef, market, currency, lines]
+      properties:
+        cartRef:
+          type: string
+          maxLength: 128
+        userRef:
+          $ref: '#/components/schemas/UserRef'
+        market:
+          $ref: '#/components/schemas/Market'
+        storeId:
+          type: string
+          maxLength: 64
+          description: Required when availabilityMode is MIRROR.
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        locale:
+          $ref: '#/components/schemas/Locale'
+        availabilityMode:
+          type: string
+          enum: [MIRROR, PARTNER_FILTER]
+          default: MIRROR
+        context:
+          $ref: '#/components/schemas/CartContext'
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CartLine'
+    ProductSummary:
+      type: object
+      required: [partnerSku, productId, title, health]
+      properties:
+        partnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        productId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        brand:
+          type: [string, 'null']
+        netQuantity:
+          $ref: '#/components/schemas/NetQuantity'
+        imageUrl:
+          type: [string, 'null']
+          format: uri
+        health:
+          $ref: '#/components/schemas/HealthProfileSummary'
+    NutrientComparison:
+      type: object
+      required: [nutrient, basis, from, to, unit, direction]
+      properties:
+        nutrient:
+          type: string
+          examples: [totalSugarsG]
+        basis:
+          type: string
+          enum: [PER_100G, PER_100ML, PER_SERVING]
+        from:
+          type: number
+        to:
+          type: number
+        unit:
+          type: string
+        relativeChange:
+          type: [number, 'null']
+          description: (to - from) / from; null when from is 0.
+        direction:
+          type: string
+          enum: [BETTER, WORSE, SAME]
+    Explanation:
+      type: object
+      required: [short, details, generator, locale, methodologyUrl]
+      properties:
+        short:
+          type: string
+          maxLength: 160
+        bullets:
+          type: array
+          maxItems: 3
+          items:
+            type: string
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/NutrientComparison'
+        generator:
+          type: string
+          enum: [TEMPLATE, LLM_VALIDATED]
+        aiGenerated:
+          type: boolean
+          description: True when the text was produced or paraphrased by an AI model (label where required).
+        locale:
+          $ref: '#/components/schemas/Locale'
+        methodologyUrl:
+          type: string
+          format: uri
+        disclaimer:
+          type: string
+    Alternative:
+      type: object
+      required: [rank, product, healthDelta, explanation, sponsored, requiresAvailabilityCheck, recommendation]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        product:
+          $ref: '#/components/schemas/ProductSummary'
+        recommendation:
+          $ref: '#/components/schemas/RecommendationLabel'
+        unitPrice:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        unitPriceDelta:
+          description: Alternative unit price minus original unit price.
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        normalizedPriceRatio:
+          type: [number, 'null']
+          description: Ratio of price per 100 g or 100 ml (alternative / original).
+        healthDelta:
+          type: number
+          description: HSI(alternative) - HSI(original).
+        reasonCodes:
+          type: array
+          items:
+            type: string
+          examples:
+            - [LOWER_SUGAR, HIGHER_FIBRE]
+        explanation:
+          $ref: '#/components/schemas/Explanation'
+        sponsored:
+          type: boolean
+        requiresAvailabilityCheck:
+          type: boolean
+          description: True in PARTNER_FILTER mode or when the inventory mirror is stale. The partner must verify stock before showing it.
+        suggestedQuantity:
+          type: number
+    RecommendationLabel:
+      type: object
+      description: |
+        Label that the partner must render on every HealthSwap-recommended product: on the suggestion itself and on the
+        cart line after the shopper adds it (see `CartEvaluation.lineLabels`). `chargeable` tells the partner that
+        adding this product to the cart is billable under RA-1; the amount is never sent to client devices.
+      required: [code, text, shortText, disclosure, chargeable]
+      properties:
+        code:
+          type: string
+          const: HEALTHSWAP_RECOMMENDED
+        text:
+          type: string
+          examples: [Recommended by HealthSwap]
+        shortText:
+          type: string
+          examples: [HealthSwap pick]
+        disclosure:
+          type: string
+          description: Material-connection disclosure to show in the "Why am I seeing this?" sheet.
+        chargeable:
+          type: boolean
+        feeRule:
+          type: [string, 'null']
+          examples: [RA-1]
+    LineLabel:
+      type: object
+      description: A cart line that holds a HealthSwap-recommended product the shopper added earlier in this cart session.
+      required: [lineId, partnerSku, suggestionId, label]
+      properties:
+        lineId:
+          type: string
+        partnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        suggestionId:
+          type: string
+          format: uuid
+        label:
+          $ref: '#/components/schemas/RecommendationLabel'
+    LineSuggestion:
+      type: object
+      required: [suggestionId, lineId, original, alternatives]
+      properties:
+        suggestionId:
+          type: string
+          format: uuid
+        lineId:
+          type: string
+        original:
+          $ref: '#/components/schemas/ProductSummary'
+        alternatives:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/Alternative'
+        expiresAt:
+          type: string
+          format: date-time
+    CartHealthSummary:
+      type: object
+      properties:
+        linesTotal:
+          type: integer
+        linesResolved:
+          type: integer
+        linesScored:
+          type: integer
+        linesWithSuggestions:
+          type: integer
+        cartHsi:
+          type: [number, 'null']
+          description: Quantity-weighted mean HSI of scored lines.
+        flagCounts:
+          type: object
+          additionalProperties:
+            type: integer
+    Disclosures:
+      type: object
+      required: [feeDisclosure, labelDisclaimer, methodologyUrl]
+      properties:
+        feeDisclosure:
+          type: string
+        labelDisclaimer:
+          type: string
+        methodologyUrl:
+          type: string
+          format: uri
+        attributions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataAttribution'
+    ModelVersions:
+      type: object
+      required: [scoring, rules, swapGraph]
+      properties:
+        scoring:
+          type: string
+        rules:
+          type: string
+        swapGraph:
+          type: string
+        ranker:
+          type: string
+    CartEvaluation:
+      type: object
+      required: [evaluationId, cartRef, market, createdAt, expiresAt, degraded, suggestions, disclosures, modelVersions]
+      properties:
+        evaluationId:
+          type: string
+          format: uuid
+        cartRef:
+          type: string
+        market:
+          $ref: '#/components/schemas/Market'
+        storeId:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        degraded:
+          type: boolean
+        degradationReasons:
+          type: array
+          items:
+            type: string
+            enum: [TIMEOUT_BUDGET, INVENTORY_STALE, RANKER_UNAVAILABLE, EXPLANATIONS_TEMPLATE_ONLY, KILL_SWITCH, NO_DATA]
+        summary:
+          $ref: '#/components/schemas/CartHealthSummary'
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineSuggestion'
+        lineLabels:
+          type: array
+          description: Cart lines that already hold a HealthSwap-recommended product; render the label on these lines.
+          items:
+            $ref: '#/components/schemas/LineLabel'
+        disclosures:
+          $ref: '#/components/schemas/Disclosures'
+        modelVersions:
+          $ref: '#/components/schemas/ModelVersions'
+    AlternativesResponse:
+      type: object
+      required: [productId, market, alternatives]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        market:
+          $ref: '#/components/schemas/Market'
+        storeId:
+          type: [string, 'null']
+        suggestionId:
+          type: [string, 'null']
+          format: uuid
+          description: Present when a cart context was supplied; reference it in ADD_TO_CART events.
+        expiresAt:
+          type: [string, 'null']
+          format: date-time
+        alternatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alternative'
+        disclosures:
+          $ref: '#/components/schemas/Disclosures'
+
+    # ---------- Events ----------
+    SuggestionEvent:
+      type: object
+      required: [eventId, type, suggestionId, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: Client-generated, used for deduplication.
+        type:
+          type: string
+          enum: [IMPRESSION, ACCEPT, ADD_TO_CART, DISMISS, UNDO, DETAILS_VIEWED]
+          description: |
+            ACCEPT: the shopper accepted the swap and the alternative was added to the cart (one RA-1 add).
+            ADD_TO_CART: any other add of a HealthSwap-recommended alternative to the cart (one RA-1 add per event).
+            UNDO: the shopper reverted the swap or removed the added product; voids the latest add of the same
+            suggestion if it falls within the undo grace period.
+        suggestionId:
+          type: string
+          format: uuid
+        alternativePartnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          description: Units added by this action (used only when the contract bills RA-1 per unit).
+        occurredAt:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          maxProperties: 10
+          additionalProperties:
+            type: string
+    EventBatchRequest:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/SuggestionEvent'
+    EventBatchResult:
+      type: object
+      required: [accepted, duplicates]
+      properties:
+        accepted:
+          type: integer
+        duplicates:
+          type: integer
+        rejected:
+          type: array
+          items:
+            type: object
+            properties:
+              eventId:
+                type: string
+              code:
+                type: string
+              message:
+                type: string
+        charges:
+          type: array
+          description: RA-1 charges created by ACCEPT / ADD_TO_CART events in this batch (server-to-server callers only).
+          items:
+            $ref: '#/components/schemas/RecommendationChargeAck'
+    RecommendationChargeAck:
+      type: object
+      required: [eventId, chargeId, state, amount]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        chargeId:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/RecommendationChargeState'
+        amount:
+          $ref: '#/components/schemas/Money'
+        finalizesAt:
+          type: string
+          format: date-time
+    RecommendationChargeState:
+      type: string
+      enum: [PENDING, FINAL, VOID, REJECTED, CREDITED]
+    RecommendationCharge:
+      type: object
+      required: [chargeId, eventId, eventType, suggestionId, cartRef, alternativePartnerSku, amount, state, ruleVersion, occurredAt]
+      properties:
+        chargeId:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          enum: [ACCEPT, ADD_TO_CART]
+        suggestionId:
+          type: string
+          format: uuid
+        cartRef:
+          type: string
+        placement:
+          type: string
+        alternativePartnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        quantity:
+          type: number
+        basis:
+          type: string
+          enum: [PER_ADD_EVENT, PER_UNIT]
+        amount:
+          $ref: '#/components/schemas/Money'
+        state:
+          $ref: '#/components/schemas/RecommendationChargeState'
+        rejectionReason:
+          type: [string, 'null']
+          description: |
+            For REJECTED or VOID: NOT_SERVED_BY_HEALTHSWAP, NO_IMPRESSION, SKU_NOT_RECOMMENDED,
+            OUTSIDE_ATTRIBUTION_WINDOW, UNDONE_WITHIN_GRACE, CAP_REACHED, FEE_NOT_CONTRACTED.
+        ruleVersion:
+          type: string
+          examples: [RA-1]
+        occurredAt:
+          type: string
+          format: date-time
+        finalizesAt:
+          type: [string, 'null']
+          format: date-time
+        finalizedAt:
+          type: [string, 'null']
+          format: date-time
+        statementId:
+          type: [string, 'null']
+          format: uuid
+        creditedAmount:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+    RecommendationChargePage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendationCharge'
+        nextCursor:
+          type: [string, 'null']
+
+    # ---------- Orders & attribution ----------
+    OrderLine:
+      type: object
+      required: [lineId, partnerSku, quantity, unitPrice, netAmount]
+      properties:
+        lineId:
+          type: string
+          maxLength: 64
+        partnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        gtin:
+          $ref: '#/components/schemas/Gtin'
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+        unitPrice:
+          $ref: '#/components/schemas/Money'
+        lineDiscount:
+          $ref: '#/components/schemas/Money'
+        allocatedOrderDiscount:
+          $ref: '#/components/schemas/Money'
+        taxAmount:
+          $ref: '#/components/schemas/Money'
+        taxRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        netAmount:
+          $ref: '#/components/schemas/Money'
+        suggestionId:
+          type: string
+          format: uuid
+          description: Present when this line results from an accepted HealthSwap suggestion.
+    OrderCreateRequest:
+      type: object
+      required: [orderId, market, currency, placedAt, lines]
+      properties:
+        orderId:
+          type: string
+          maxLength: 64
+        cartRef:
+          type: string
+          maxLength: 128
+        userRef:
+          $ref: '#/components/schemas/UserRef'
+        storeId:
+          type: string
+          maxLength: 64
+        market:
+          $ref: '#/components/schemas/Market'
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        placedAt:
+          type: string
+          format: date-time
+        fulfillmentType:
+          type: string
+          enum: [QUICK_COMMERCE, SCHEDULED_DELIVERY, PICKUP]
+        experimentArm:
+          type: string
+        orderDiscount:
+          $ref: '#/components/schemas/Money'
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/OrderLine'
+    AttributionLine:
+      type: object
+      required: [lineId, suggestionId, state, ruleVersion]
+      properties:
+        lineId:
+          type: string
+        suggestionId:
+          type: string
+          format: uuid
+        originalPartnerSku:
+          type: string
+        alternativePartnerSku:
+          type: string
+        replacedQuantity:
+          type: number
+        originalUnitPriceSnapshot:
+          $ref: '#/components/schemas/Money'
+        alternativeNetUnitPrice:
+          $ref: '#/components/schemas/Money'
+        packDelta:
+          $ref: '#/components/schemas/Money'
+        sizeNormalizedDelta:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        fairPremium:
+          $ref: '#/components/schemas/Money'
+        feeRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        fee:
+          $ref: '#/components/schemas/Money'
+        state:
+          type: string
+          enum: [PENDING, ACCRUED, FINAL, REVERSED, VOID, CREDITED, REJECTED]
+        rejectionReason:
+          type: [string, 'null']
+          description: For example NO_IMPRESSION, NO_ACCEPT, PRODUCT_MISMATCH, EXPIRED, NOT_SERVED_BY_HEALTHSWAP.
+        finalizesAt:
+          type: [string, 'null']
+          format: date-time
+        ruleVersion:
+          type: string
+          examples: [FP-1]
+    AttributionSummary:
+      type: object
+      required: [orderId, currency, totalFairPremium, totalFee, lines]
+      properties:
+        orderId:
+          type: string
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        totalFairPremium:
+          $ref: '#/components/schemas/Money'
+        totalFee:
+          $ref: '#/components/schemas/Money'
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributionLine'
+    Order:
+      type: object
+      required: [orderId, status, market, currency, placedAt, lines]
+      properties:
+        orderId:
+          type: string
+        status:
+          type: string
+          enum: [PLACED, CONFIRMED, PARTIALLY_FULFILLED, DELIVERED, CANCELLED]
+        market:
+          $ref: '#/components/schemas/Market'
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        placedAt:
+          type: string
+          format: date-time
+        deliveredAt:
+          type: [string, 'null']
+          format: date-time
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLine'
+        attribution:
+          $ref: '#/components/schemas/AttributionSummary'
+    OrderStatusUpdate:
+      type: object
+      required: [status, occurredAt]
+      properties:
+        status:
+          type: string
+          enum: [CONFIRMED, PARTIALLY_FULFILLED, DELIVERED, CANCELLED]
+        occurredAt:
+          type: string
+          format: date-time
+        lineStatuses:
+          type: array
+          items:
+            type: object
+            required: [lineId]
+            properties:
+              lineId:
+                type: string
+              deliveredQuantity:
+                type: number
+                minimum: 0
+              cancelledQuantity:
+                type: number
+                minimum: 0
+    OrderAdjustment:
+      type: object
+      required: [adjustmentId, lineId, type, occurredAt]
+      properties:
+        adjustmentId:
+          type: string
+          maxLength: 64
+        lineId:
+          type: string
+        type:
+          type: string
+          enum: [RETURN, REFUND, PRICE_ADJUSTMENT, PICKER_SUBSTITUTION, CANCELLATION]
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+        amount:
+          $ref: '#/components/schemas/Money'
+        substitutedPartnerSku:
+          $ref: '#/components/schemas/PartnerSku'
+        occurredAt:
+          type: string
+          format: date-time
+    OrderAdjustmentRequest:
+      type: object
+      required: [adjustments]
+      properties:
+        adjustments:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/OrderAdjustment'
+
+    # ---------- Billing ----------
+    StatementStatus:
+      type: string
+      enum: [DRAFT, ISSUED, DISPUTED, SETTLED, VOID]
+    StatementTotals:
+      type: object
+      required: [grossFee, reversals, credits, netFee, tax, totalDue]
+      properties:
+        premiumFee:
+          description: FP-1 fees (10% of fair premium) before reversals.
+          $ref: '#/components/schemas/Money'
+        recommendationFee:
+          description: RA-1 recommendation-add fees.
+          $ref: '#/components/schemas/Money'
+        recommendationChargeCount:
+          type: integer
+        grossFee:
+          description: premiumFee + recommendationFee.
+          $ref: '#/components/schemas/Money'
+        reversals:
+          $ref: '#/components/schemas/Money'
+        credits:
+          $ref: '#/components/schemas/Money'
+        netFee:
+          $ref: '#/components/schemas/Money'
+        tax:
+          $ref: '#/components/schemas/Money'
+        totalDue:
+          $ref: '#/components/schemas/Money'
+    Statement:
+      type: object
+      required: [statementId, period, currency, status, totals, lineCount]
+      properties:
+        statementId:
+          type: string
+          format: uuid
+        period:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        status:
+          $ref: '#/components/schemas/StatementStatus'
+        totals:
+          $ref: '#/components/schemas/StatementTotals'
+        lineCount:
+          type: integer
+        invoiceNumber:
+          type: [string, 'null']
+        invoiceUrl:
+          type: [string, 'null']
+          format: uri
+        issuedAt:
+          type: [string, 'null']
+          format: date-time
+        dueAt:
+          type: [string, 'null']
+          format: date-time
+    StatementList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Statement'
+        nextCursor:
+          type: [string, 'null']
+    StatementLine:
+      type: object
+      required: [lineNo, type, orderId, orderLineId, suggestionId, fairPremium, amount]
+      properties:
+        lineNo:
+          type: integer
+        type:
+          type: string
+          enum: [FEE, REVERSAL, CREDIT]
+        orderId:
+          type: string
+        orderLineId:
+          type: string
+        suggestionId:
+          type: string
+          format: uuid
+        deliveredAt:
+          type: [string, 'null']
+          format: date-time
+        fairPremium:
+          $ref: '#/components/schemas/Money'
+        amount:
+          $ref: '#/components/schemas/Money'
+    StatementLinePage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatementLine'
+        nextCursor:
+          type: [string, 'null']
+    DisputedLine:
+      type: object
+      required: [orderId, orderLineId]
+      properties:
+        orderId:
+          type: string
+        orderLineId:
+          type: string
+    DisputeRequest:
+      type: object
+      description: Dispute FP-1 statement lines (`lines`), RA-1 charges (`recommendationChargeIds`), or both.
+      required: [statementId, reason]
+      properties:
+        statementId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [ORDER_NOT_DELIVERED, PRICE_MISMATCH, NOT_ATTRIBUTABLE, DUPLICATE, NOT_ADDED_TO_CART, OTHER]
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/DisputedLine'
+        recommendationChargeIds:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            type: string
+            format: uuid
+        comment:
+          type: string
+          maxLength: 2000
+      anyOf:
+        - required: [lines]
+        - required: [recommendationChargeIds]
+    Dispute:
+      type: object
+      required: [disputeId, statementId, status, reason, lines, openedAt]
+      properties:
+        disputeId:
+          type: string
+          format: uuid
+        statementId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [OPEN, UNDER_REVIEW, UPHELD, PARTIALLY_UPHELD, REJECTED]
+        reason:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisputedLine'
+        recommendationChargeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        comment:
+          type: [string, 'null']
+        resolution:
+          type: [string, 'null']
+        creditNoteAmount:
+          oneOf:
+            - $ref: '#/components/schemas/Money'
+            - type: 'null'
+        openedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: [string, 'null']
+          format: date-time
+
+    # ---------- Transparency ----------
+    ScoringModel:
+      type: object
+      required: [code, version, market, status]
+      properties:
+        code:
+          type: string
+          examples: [NUTRISCORE_2023]
+        version:
+          type: string
+        market:
+          $ref: '#/components/schemas/Market'
+        status:
+          type: string
+          enum: [PREVIEW, ACTIVE, DEPRECATED]
+        description:
+          type: string
+        documentationUrl:
+          type: string
+          format: uri
+        effectiveFrom:
+          type: string
+          format: date
+    ScoringModelList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoringModel'
+    ServiceStatus:
+      type: object
+      required: [status, updatedAt]
+      properties:
+        status:
+          type: string
+          enum: [OPERATIONAL, DEGRADED, PARTIAL_OUTAGE, MAJOR_OUTAGE]
+        regions:
+          type: array
+          items:
+            type: object
+            properties:
+              region:
+                type: string
+              status:
+                type: string
+                enum: [OPERATIONAL, DEGRADED, PARTIAL_OUTAGE, MAJOR_OUTAGE]
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ---------- Webhooks ----------
+    WebhookEnvelope:
+      type: object
+      required: [id, type, createdAt, apiVersion, data]
+      properties:
+        id:
+          type: string
+          description: Unique event id; use it to deduplicate deliveries.
+        type:
+          type: string
+          enum:
+            - catalog.match.review_required
+            - product.health_profile.changed
+            - billing.statement.issued
+            - billing.dispute.updated
+            - user.erasure.completed
+        createdAt:
+          type: string
+          format: date-time
+        apiVersion:
+          type: string
+          examples: ['1.0']
+        partnerId:
+          type: string
+          format: uuid
+        data:
+          type: object
+    CatalogReviewWebhookData:
+      type: object
+      required: [items]
+      properties:
+        feedId:
+          type: [string, 'null']
+          format: uuid
+        items:
+          type: array
+          items:
+            type: object
+            required: [partnerSku, match]
+            properties:
+              partnerSku:
+                type: string
+              match:
+                $ref: '#/components/schemas/MatchResult'
+    ProductProfileChangedWebhookData:
+      type: object
+      required: [productId, market, partnerSkus, profileVersion]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        market:
+          $ref: '#/components/schemas/Market'
+        partnerSkus:
+          type: array
+          items:
+            type: string
+        previousProfileVersion:
+          type: [string, 'null']
+        profileVersion:
+          type: string
+        changes:
+          type: array
+          description: For example NUTRITION_UPDATED, ALLERGENS_UPDATED, SCORE_MODEL_UPDATED, RECALL_FLAGGED.
+          items:
+            type: string
+    StatementIssuedWebhookData:
+      type: object
+      required: [statementId, period, totalDue]
+      properties:
+        statementId:
+          type: string
+          format: uuid
+        period:
+          type: string
+        totalDue:
+          $ref: '#/components/schemas/Money'
+    DisputeUpdatedWebhookData:
+      type: object
+      required: [disputeId, status]
+      properties:
+        disputeId:
+          type: string
+          format: uuid
+        status:
+          type: string
+    ErasureCompletedWebhookData:
+      type: object
+      required: [requestId, completedAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        completedAt:
+          type: string
+          format: date-time

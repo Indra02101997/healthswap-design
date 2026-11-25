@@ -1,0 +1,47 @@
+{
+  "stores": {
+    "BLR-KOR-012": [
+      { "partnerSku": "SKU-NDL-280", "inStock": true, "price": "56.00", "mrp": "56.00" },
+      { "partnerSku": "SKU-MLT-256", "inStock": true, "price": "89.00", "mrp": "89.00" },
+      { "partnerSku": "SKU-ATT-280", "inStock": false, "price": "60.00", "mrp": "60.00" },
+      { "partnerSku": "SKU-COLA-750", "inStock": true, "price": "40.00", "mrp": "40.00" },
+      { "partnerSku": "SKU-ZCOLA-750", "inStock": true, "price": "40.00", "mrp": "40.00" },
+      { "partnerSku": "SKU-LEMW-500", "inStock": true, "price": "35.00", "mrp": "35.00" },
+      { "partnerSku": "SKU-CRM-500", "inStock": true, "price": "100.00", "mrp": "100.00" },
+      { "partnerSku": "SKU-DGV-1K", "inStock": true, "price": "240.00", "mrp": "250.00" },
+      { "partnerSku": "SKU-MRE-250", "inStock": true, "price": "30.00", "mrp": "30.00" },
+      { "partnerSku": "SKU-OATC-200", "inStock": true, "price": "99.00", "mrp": "99.00" },
+      { "partnerSku": "SKU-YGS-400", "inStock": true, "price": "60.00", "mrp": "60.00" },
+      { "partnerSku": "SKU-DAHI-400", "inStock": true, "price": "45.00", "mrp": "45.00" },
+      { "partnerSku": "SKU-GRK-400", "inStock": true, "price": "120.00", "mrp": "120.00" },
+      { "partnerSku": "SKU-CHP-90", "inStock": true, "price": "40.00", "mrp": "40.00" },
+      { "partnerSku": "SKU-BKC-90", "inStock": true, "price": "45.00", "mrp": "45.00" },
+      { "partnerSku": "SKU-LSB-90", "inStock": true, "price": "45.00", "mrp": "45.00" },
+      { "partnerSku": "SKU-MCH-100", "inStock": true, "price": "120.00", "mrp": "120.00" },
+      { "partnerSku": "SKU-DCH-100", "inStock": true, "price": "150.00", "mrp": "150.00" },
+      { "partnerSku": "SKU-CFL-375", "inStock": true, "price": "180.00", "mrp": "185.00" },
+      { "partnerSku": "SKU-MGF-375", "inStock": true, "price": "210.00", "mrp": "210.00" },
+      { "partnerSku": "SKU-MSL-500", "inStock": true, "price": "320.00", "mrp": "320.00" },
+      { "partnerSku": "SKU-WBR-400", "inStock": true, "price": "40.00", "mrp": "40.00" },
+      { "partnerSku": "SKU-WWB-400", "inStock": true, "price": "50.00", "mrp": "50.00" },
+      { "partnerSku": "SKU-DBWW-400", "inStock": true, "price": "42.00", "mrp": "42.00" },
+      { "partnerSku": "SKU-CLB-400", "inStock": true, "price": "35.00", "mrp": "35.00" },
+      { "partnerSku": "SKU-KTC-500", "inStock": true, "price": "90.00", "mrp": "90.00" },
+      { "partnerSku": "SKU-NAK-450", "inStock": true, "price": "120.00", "mrp": "120.00" },
+      { "partnerSku": "SKU-BHJ-200", "inStock": true, "price": "55.00", "mrp": "55.00" },
+      { "partnerSku": "SKU-RCH-200", "inStock": true, "price": "60.00", "mrp": "60.00" },
+      { "partnerSku": "SKU-CMK-200", "inStock": true, "price": "30.00", "mrp": "30.00" },
+      { "partnerSku": "SKU-LCM-200", "inStock": true, "price": "32.00", "mrp": "32.00" },
+      { "partnerSku": "SKU-DBCD-400", "inStock": true, "price": "38.00", "mrp": "38.00" }
+    ],
+    "BLR-IND-004": [
+      { "partnerSku": "SKU-NDL-280", "inStock": true, "price": "56.00", "mrp": "56.00" },
+      { "partnerSku": "SKU-MLT-256", "inStock": false, "price": "89.00", "mrp": "89.00" },
+      { "partnerSku": "SKU-ATT-280", "inStock": true, "price": "60.00", "mrp": "60.00" },
+      { "partnerSku": "SKU-COLA-750", "inStock": true, "price": "40.00", "mrp": "40.00" },
+      { "partnerSku": "SKU-ZCOLA-750", "inStock": true, "price": "40.00", "mrp": "40.00" },
+      { "partnerSku": "SKU-YGS-400", "inStock": true, "price": "60.00", "mrp": "60.00" },
+      { "partnerSku": "SKU-DBCD-400", "inStock": true, "price": "38.00", "mrp": "38.00" }
+    ]
+  }
+}

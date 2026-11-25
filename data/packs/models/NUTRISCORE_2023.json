@@ -1,0 +1,283 @@
+{
+  "code": "NUTRISCORE_2023",
+  "version": "1.0",
+  "gradeKind": "POINTS",
+  "verification": "ILLUSTRATIVE transcription of the 2023 updated algorithm; validate against the official specification and calculator.",
+  "categoryVariants": {
+    "BEVERAGE": "BEVERAGE",
+    "WATER": "WATER"
+  },
+  "variants": {
+    "FOOD": {
+      "negative": [
+        {
+          "nutrient": "ENERGY_KJ",
+          "thresholds": [
+            335,
+            670,
+            1005,
+            1340,
+            1675,
+            2010,
+            2345,
+            2680,
+            3015,
+            3350
+          ]
+        },
+        {
+          "nutrient": "SUGARS_G",
+          "thresholds": [
+            3.4,
+            6.8,
+            10,
+            14,
+            17,
+            20,
+            24,
+            27,
+            31,
+            34,
+            37,
+            41,
+            44,
+            48,
+            51
+          ]
+        },
+        {
+          "nutrient": "SAT_FAT_G",
+          "thresholds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "nutrient": "SALT_G",
+          "thresholds": [
+            0.2,
+            0.4,
+            0.6,
+            0.8,
+            1.0,
+            1.2,
+            1.4,
+            1.6,
+            1.8,
+            2.0,
+            2.2,
+            2.4,
+            2.6,
+            2.8,
+            3.0,
+            3.2,
+            3.4,
+            3.6,
+            3.8,
+            4.0
+          ]
+        }
+      ],
+      "positive": [
+        {
+          "nutrient": "PROTEIN_G",
+          "thresholds": [
+            2.4,
+            4.8,
+            7.2,
+            9.6,
+            12,
+            14,
+            17
+          ]
+        },
+        {
+          "nutrient": "FIBRE_G",
+          "thresholds": [
+            3.0,
+            4.1,
+            5.2,
+            6.3,
+            7.4
+          ]
+        },
+        {
+          "nutrient": "FVL_PCT",
+          "thresholds": [
+            40,
+            60,
+            80
+          ],
+          "points": [
+            1,
+            2,
+            5
+          ]
+        }
+      ],
+      "proteinRule": {
+        "negativeAtLeast": 11,
+        "proteinComponent": "PROTEIN_G"
+      },
+      "grades": [
+        {
+          "max": 0,
+          "grade": "A"
+        },
+        {
+          "max": 2,
+          "grade": "B"
+        },
+        {
+          "max": 10,
+          "grade": "C"
+        },
+        {
+          "max": 18,
+          "grade": "D"
+        },
+        {
+          "max": 999,
+          "grade": "E"
+        }
+      ],
+      "hsiMin": -15,
+      "hsiMax": 40
+    },
+    "BEVERAGE": {
+      "negative": [
+        {
+          "nutrient": "ENERGY_KJ",
+          "thresholds": [
+            30,
+            90,
+            150,
+            210,
+            240,
+            270,
+            300,
+            330,
+            360,
+            390
+          ]
+        },
+        {
+          "nutrient": "SUGARS_G",
+          "thresholds": [
+            0.5,
+            2,
+            3.5,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "nutrient": "SAT_FAT_G",
+          "thresholds": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "nutrient": "SALT_G",
+          "thresholds": [
+            0.2,
+            0.4,
+            0.6,
+            0.8,
+            1.0,
+            1.2,
+            1.4,
+            1.6,
+            1.8,
+            2.0
+          ]
+        }
+      ],
+      "positive": [
+        {
+          "nutrient": "PROTEIN_G",
+          "thresholds": [
+            1.2,
+            1.5,
+            1.8,
+            2.1,
+            2.4,
+            2.7,
+            3.0
+          ]
+        },
+        {
+          "nutrient": "FIBRE_G",
+          "thresholds": [
+            3.0,
+            4.1,
+            5.2,
+            6.3,
+            7.4
+          ]
+        },
+        {
+          "nutrient": "FVL_PCT",
+          "thresholds": [
+            40,
+            60,
+            80
+          ],
+          "points": [
+            2,
+            4,
+            6
+          ]
+        }
+      ],
+      "sweetenerPenalty": 4,
+      "grades": [
+        {
+          "max": 2,
+          "grade": "B"
+        },
+        {
+          "max": 6,
+          "grade": "C"
+        },
+        {
+          "max": 9,
+          "grade": "D"
+        },
+        {
+          "max": 999,
+          "grade": "E"
+        }
+      ],
+      "hsiMin": -4,
+      "hsiMax": 24
+    },
+    "WATER": {
+      "fixedGrade": "A",
+      "hsiMin": 0,
+      "hsiMax": 1
+    }
+  }
+}

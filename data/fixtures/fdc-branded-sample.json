@@ -1,0 +1,40 @@
+{
+  "note": "SYNTHETIC records in the USDA FoodData Central Branded Foods JSON download layout (foodNutrients per 100 g/ml; nutrient numbers 208 energy, 203 protein, 204 fat, 205 carbohydrate, 269 total sugars, 539 added sugars, 291 fiber, 307 sodium, 606 saturated fat, 605 trans fat).",
+  "BrandedFoods": [
+    {
+      "fdcId": 9999001, "dataType": "Branded", "description": "WHOLE GRAIN LITE FLAKES", "gtinUpc": "099999000023",
+      "brandOwner": "Prairie Harvest Mills", "brandName": "PRAIRIE HARVEST", "brandedFoodCategory": "Cereal", "marketCountry": "United States",
+      "ingredients": "WHOLE GRAIN WHEAT, WHOLE GRAIN OATS, CANE SUGAR, WHEAT BRAN, SALT, MIXED TOCOPHEROLS",
+      "servingSize": 40.0, "servingSizeUnit": "g", "publicationDate": "2026-10-23", "modifiedDate": "2026-09-30",
+      "foodNutrients": [
+        { "nutrient": { "number": "208", "name": "Energy", "unitName": "KCAL" }, "amount": 360.0 },
+        { "nutrient": { "number": "203", "name": "Protein", "unitName": "G" }, "amount": 10.0 },
+        { "nutrient": { "number": "204", "name": "Total lipid (fat)", "unitName": "G" }, "amount": 4.0 },
+        { "nutrient": { "number": "205", "name": "Carbohydrate, by difference", "unitName": "G" }, "amount": 76.0 },
+        { "nutrient": { "number": "269", "name": "Total Sugars", "unitName": "G" }, "amount": 12.0 },
+        { "nutrient": { "number": "539", "name": "Sugars, added", "unitName": "G" }, "amount": 10.0 },
+        { "nutrient": { "number": "291", "name": "Fiber, total dietary", "unitName": "G" }, "amount": 11.0 },
+        { "nutrient": { "number": "307", "name": "Sodium, Na", "unitName": "MG" }, "amount": 340.0 },
+        { "nutrient": { "number": "606", "name": "Fatty acids, total saturated", "unitName": "G" }, "amount": 0.7 },
+        { "nutrient": { "number": "605", "name": "Fatty acids, total trans", "unitName": "G" }, "amount": 0.0 }
+      ]
+    },
+    {
+      "fdcId": 9999002, "dataType": "Branded", "description": "HONEY NUT TOASTED OAT CEREAL", "gtinUpc": "099999000177",
+      "brandOwner": "Sunny Valley Foods", "brandName": "SUNNY VALLEY", "brandedFoodCategory": "Cereal", "marketCountry": "United States",
+      "ingredients": "WHOLE GRAIN OATS, SUGAR, OAT BRAN, HONEY, BROWN SUGAR, SALT, TRIPOTASSIUM PHOSPHATE, NATURAL ALMOND FLAVOR, MIXED TOCOPHEROLS",
+      "servingSize": 37.0, "servingSizeUnit": "g", "publicationDate": "2026-10-23", "modifiedDate": "2026-09-30",
+      "foodNutrients": [
+        { "nutrient": { "number": "208", "name": "Energy", "unitName": "KCAL" }, "amount": 378.0 },
+        { "nutrient": { "number": "203", "name": "Protein", "unitName": "G" }, "amount": 8.1 },
+        { "nutrient": { "number": "204", "name": "Total lipid (fat)", "unitName": "G" }, "amount": 5.4 },
+        { "nutrient": { "number": "205", "name": "Carbohydrate, by difference", "unitName": "G" }, "amount": 78.4 },
+        { "nutrient": { "number": "269", "name": "Total Sugars", "unitName": "G" }, "amount": 32.4 },
+        { "nutrient": { "number": "539", "name": "Sugars, added", "unitName": "G" }, "amount": 32.4 },
+        { "nutrient": { "number": "291", "name": "Fiber, total dietary", "unitName": "G" }, "amount": 8.1 },
+        { "nutrient": { "number": "307", "name": "Sodium, Na", "unitName": "MG" }, "amount": 541.0 },
+        { "nutrient": { "number": "606", "name": "Fatty acids, total saturated", "unitName": "G" }, "amount": 1.1 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "market": "US",
+  "packVersion": "US-2026.11.1",
+  "status": "PREVIEW",
+  "verification": "ILLUSTRATIVE. Verify thresholds against 21 CFR 101 (Nutrition Facts, nutrient content claims), the FDA \"healthy\" final rule (Dec 2024) and the FDA front-of-package proposed rule (Jan 2025) before production use.",
+  "primaryModel": "NUTRISCORE_2023",
+  "methodologyUrl": "https://healthswap.example/methodology/US/v1",
+  "documents": [
+    { "citation": "21 CFR 101.9", "authority": "FDA", "title": "Nutrition labeling of food", "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-B/part-101", "effectiveFrom": "2016-05-27" },
+    { "citation": "FDA healthy final rule 2024", "authority": "FDA", "title": "Food Labeling: Nutrient Content Claims; Definition of Term \"Healthy\"", "url": "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/use-term-healthy-food-labeling", "effectiveFrom": "2025-04-28" },
+    { "citation": "FDA FOP proposed rule 2025", "authority": "FDA", "title": "Food Labeling: Front-of-Package Nutrition Information (proposed)", "url": "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/front-package-nutrition-labeling", "effectiveFrom": null },
+    { "citation": "FALCPA + FASTER Act", "authority": "FDA", "title": "Food Allergen Labeling and Consumer Protection Act and FASTER Act (sesame)", "url": "https://www.fda.gov/food/food-labeling-nutrition/food-allergies", "effectiveFrom": "2023-01-01" }
+  ],
+  "allergenRules": ["MILK", "EGGS", "FISH", "CRUSTACEANS", "TREE_NUTS", "PEANUTS", "WHEAT", "SOY", "SESAME"],
+  "hsi": { "version": "1.0", "weightNutrientProfile": 0.70, "weightProcessing": 0.15, "weightAdditives": 0.15, "novaPoints": { "1": 100, "2": 85, "3": 70, "4": 40 }, "tierBPenalty": 30, "tierCPenalty": 10 },
+  "rules": { "version": "R-1.3", "tauSub": 0.70, "deltaMin": 8, "limitedNutrientTolerance": 0.10, "dismissCooldownDays": 7, "minAlternativeConfidence": 0.80, "verifiedAllergenConfidence": 0.98, "targetCeilingPercentile": 60, "maxEdgesPerProduct": 50, "retrievalCandidates": 200 },
+  "fop": [
+    { "nutrient": "FASAT", "physicalState": "ANY", "basis": "PER_SERVING_PCT_DV", "lowMax": 5, "highMin": 20, "highInclusive": true },
+    { "nutrient": "NA", "physicalState": "ANY", "basis": "PER_SERVING_PCT_DV", "lowMax": 5, "highMin": 20, "highInclusive": true },
+    { "nutrient": "SUGAD", "physicalState": "ANY", "basis": "PER_SERVING_PCT_DV", "lowMax": 5, "highMin": 20, "highInclusive": true }
+  ],
+  "dailyValues": { "FAT": 78, "FASAT": 20, "CHOLE": 300, "NA": 2300, "CHOCDF": 275, "FIBTG": 28, "SUGAD": 50, "PROCNT": 50 },
+  "claims": [
+    { "claimCode": "HIGH_FIBRE", "nutrient": "FIBTG", "physicalState": "SOLID", "basis": "PER_100G", "minValue": 6.0 },
+    { "claimCode": "REDUCED", "nutrient": "SUGAR", "physicalState": "ANY", "basis": "RELATIVE", "minRelativeDifference": 0.25 },
+    { "claimCode": "REDUCED", "nutrient": "NA", "physicalState": "ANY", "basis": "RELATIVE", "minRelativeDifference": 0.25 },
+    { "claimCode": "REDUCED", "nutrient": "FASAT", "physicalState": "ANY", "basis": "RELATIVE", "minRelativeDifference": 0.25 },
+    { "claimCode": "REDUCED", "nutrient": "FATRN", "physicalState": "ANY", "basis": "RELATIVE", "minRelativeDifference": 0.25 },
+    { "claimCode": "INCREASED", "nutrient": "FIBTG", "physicalState": "ANY", "basis": "RELATIVE", "minRelativeDifference": 0.25 },
+    { "claimCode": "INCREASED", "nutrient": "PROCNT", "physicalState": "ANY", "basis": "RELATIVE", "minRelativeDifference": 0.25 }
+  ],
+  "usHealthy": [
+    { "categoryPrefix": "breakfast.cereals", "group": "GRAINS", "addedSugarsMaxG": 2.5, "sodiumMaxMg": 230, "satFatMaxG": 1.0, "requiredFlag": "WHOLE_GRAIN" },
+    { "categoryPrefix": "bread", "group": "GRAINS", "addedSugarsMaxG": 2.5, "sodiumMaxMg": 230, "satFatMaxG": 1.0, "requiredFlag": "WHOLE_GRAIN" },
+    { "categoryPrefix": "dairy.yogurt", "group": "DAIRY", "addedSugarsMaxG": 2.5, "sodiumMaxMg": 230, "satFatMaxG": 2.0, "requiredFlag": null },
+    { "categoryPrefix": "beverages.carbonated.flavoured-water", "group": "WATER", "addedSugarsMaxG": 0.0, "sodiumMaxMg": 230, "satFatMaxG": 1.0, "requiredFlag": null }
+  ],
+  "models": ["NUTRISCORE_2023@1.0"]
+}

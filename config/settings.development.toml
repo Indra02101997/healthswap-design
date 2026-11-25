@@ -1,0 +1,10 @@
+# Development overrides (port of src/HealthSwap.Api/appsettings.Development.json), loaded when HS_ENV=Development.
+# The .NET reference ran Development from launchSettings.json (http://localhost:8080, ASPNETCORE_ENVIRONMENT=Development).
+
+[webhooks]
+# Allow http://localhost webhook endpoints (production requires https and public hosts).
+allow_http_localhost = true
+
+[demo]
+# Demo endpoints and the /demo UI.
+enabled = true

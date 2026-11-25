@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HealthSwap.Api/HealthSwap.Api.csproj" />
+    <Project Path="src/HealthSwap.Cli/HealthSwap.Cli.csproj" />
+    <Project Path="src/HealthSwap.Contracts/HealthSwap.Contracts.csproj" />
+    <Project Path="src/HealthSwap.Domain/HealthSwap.Domain.csproj" />
+    <Project Path="src/HealthSwap.Platform/HealthSwap.Platform.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HealthSwap.Domain.Tests/HealthSwap.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

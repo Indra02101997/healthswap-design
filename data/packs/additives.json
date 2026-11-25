@@ -1,0 +1,742 @@
+{
+  "version": "2026.11.1",
+  "verification": "ILLUSTRATIVE subset of the additive master (Codex INS / EU E-numbers / US names) with regulatory statuses and hazard findings. Verify every entry against the cited instruments.",
+  "documents": [
+    {
+      "citation": "Reg. (EU) 2022/63",
+      "effectiveFrom": "2022-02-07",
+      "title": "Commission Regulation (EU) 2022/63 - removal of titanium dioxide (E 171)",
+      "authority": "European Commission",
+      "jurisdiction": "EU"
+    },
+    {
+      "citation": "Reg. (EC) 1333/2008 Annex V",
+      "effectiveFrom": "2010-07-20",
+      "title": "Regulation (EC) No 1333/2008 Annex V - warning label for certain food colours",
+      "authority": "European Union",
+      "jurisdiction": "EU"
+    },
+    {
+      "citation": "FDA Red No. 3 revocation (2025)",
+      "effectiveFrom": "2025-01-15",
+      "title": "Revocation of authorization of FD&C Red No. 3 in food and ingested drugs",
+      "authority": "FDA",
+      "jurisdiction": "US"
+    },
+    {
+      "citation": "EFSA Journal 2021 E171",
+      "effectiveFrom": "2021-05-06",
+      "title": "EFSA safety assessment of titanium dioxide (E171) as a food additive (2021)",
+      "authority": "EFSA",
+      "jurisdiction": "EU"
+    },
+    {
+      "citation": "IARC-JECFA aspartame 2023",
+      "effectiveFrom": "2023-07-14",
+      "title": "IARC and JECFA hazard and risk assessments of aspartame (2023)",
+      "authority": "IARC / JECFA",
+      "jurisdiction": "US"
+    },
+    {
+      "citation": "WHO NSS guideline 2023",
+      "effectiveFrom": "2023-05-15",
+      "title": "Use of non-sugar sweeteners: WHO guideline (2023)",
+      "authority": "WHO",
+      "jurisdiction": "EU"
+    },
+    {
+      "citation": "IARC Monographs Suppl. 7",
+      "effectiveFrom": "1987-01-01",
+      "title": "IARC Monographs Supplement 7 (1987) - butylated hydroxyanisole",
+      "authority": "IARC",
+      "jurisdiction": "EU"
+    },
+    {
+      "citation": "FSSAI potassium bromate 2016",
+      "effectiveFrom": "2016-06-20",
+      "title": "Removal of potassium bromate from the list of permitted additives",
+      "authority": "FSSAI",
+      "jurisdiction": "IN"
+    }
+  ],
+  "additives": [
+    {
+      "code": "100",
+      "name": "Curcumin",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "curcumin"
+      ]
+    },
+    {
+      "code": "102",
+      "name": "Tartrazine",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "tartrazine",
+        "FD&C Yellow No. 5",
+        "Yellow 5",
+        "Yellow 5 Lake"
+      ],
+      "hazards": [
+        {
+          "authority": "EU",
+          "finding": "Mandatory warning label (Reg. (EC) 1333/2008 Annex V)",
+          "tier": "B",
+          "asOf": "2010-07-20",
+          "citation": "Reg. (EC) 1333/2008 Annex V"
+        }
+      ]
+    },
+    {
+      "code": "104",
+      "name": "Quinoline yellow",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "quinoline yellow"
+      ],
+      "hazards": [
+        {
+          "authority": "EU",
+          "finding": "Mandatory warning label (Reg. (EC) 1333/2008 Annex V)",
+          "tier": "B",
+          "asOf": "2010-07-20",
+          "citation": "Reg. (EC) 1333/2008 Annex V"
+        }
+      ]
+    },
+    {
+      "code": "110",
+      "name": "Sunset yellow FCF",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "sunset yellow",
+        "FD&C Yellow No. 6",
+        "Yellow 6",
+        "Yellow 6 Lake"
+      ],
+      "hazards": [
+        {
+          "authority": "EU",
+          "finding": "Mandatory warning label (Reg. (EC) 1333/2008 Annex V)",
+          "tier": "B",
+          "asOf": "2010-07-20",
+          "citation": "Reg. (EC) 1333/2008 Annex V"
+        }
+      ]
+    },
+    {
+      "code": "122",
+      "name": "Carmoisine",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "carmoisine",
+        "azorubine"
+      ],
+      "hazards": [
+        {
+          "authority": "EU",
+          "finding": "Mandatory warning label (Reg. (EC) 1333/2008 Annex V)",
+          "tier": "B",
+          "asOf": "2010-07-20",
+          "citation": "Reg. (EC) 1333/2008 Annex V"
+        }
+      ]
+    },
+    {
+      "code": "124",
+      "name": "Ponceau 4R",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "ponceau 4r"
+      ],
+      "hazards": [
+        {
+          "authority": "EU",
+          "finding": "Mandatory warning label (Reg. (EC) 1333/2008 Annex V)",
+          "tier": "B",
+          "asOf": "2010-07-20",
+          "citation": "Reg. (EC) 1333/2008 Annex V"
+        }
+      ]
+    },
+    {
+      "code": "127",
+      "name": "Erythrosine",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "erythrosine",
+        "FD&C Red No. 3",
+        "Red 3"
+      ],
+      "statuses": [
+        {
+          "jurisdiction": "US",
+          "status": "PHASE_OUT",
+          "effectiveFrom": "2025-01-15",
+          "effectiveTo": "2027-01-15",
+          "citation": "FDA Red No. 3 revocation (2025)"
+        },
+        {
+          "jurisdiction": "US",
+          "status": "PROHIBITED",
+          "effectiveFrom": "2027-01-15",
+          "citation": "FDA Red No. 3 revocation (2025)"
+        }
+      ]
+    },
+    {
+      "code": "129",
+      "name": "Allura red AC",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "allura red",
+        "FD&C Red No. 40",
+        "Red 40",
+        "Red 40 Lake"
+      ],
+      "hazards": [
+        {
+          "authority": "EU",
+          "finding": "Mandatory warning label (Reg. (EC) 1333/2008 Annex V)",
+          "tier": "B",
+          "asOf": "2010-07-20",
+          "citation": "Reg. (EC) 1333/2008 Annex V"
+        }
+      ]
+    },
+    {
+      "code": "133",
+      "name": "Brilliant blue FCF",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "brilliant blue",
+        "FD&C Blue No. 1",
+        "Blue 1",
+        "Blue 1 Lake"
+      ]
+    },
+    {
+      "code": "150d",
+      "name": "Sulphite ammonia caramel",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "caramel color",
+        "caramel colour",
+        "caramel"
+      ]
+    },
+    {
+      "code": "160a",
+      "name": "Beta-carotene",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "beta carotene",
+        "beta-carotene"
+      ]
+    },
+    {
+      "code": "171",
+      "name": "Titanium dioxide",
+      "classes": [
+        "COLOUR"
+      ],
+      "aliases": [
+        "titanium dioxide"
+      ],
+      "statuses": [
+        {
+          "jurisdiction": "EU",
+          "status": "PROHIBITED",
+          "effectiveFrom": "2022-08-07",
+          "citation": "Reg. (EU) 2022/63"
+        }
+      ],
+      "hazards": [
+        {
+          "authority": "EFSA",
+          "finding": "No longer considered safe as a food additive",
+          "tier": "B",
+          "asOf": "2021-05-06",
+          "citation": "EFSA Journal 2021 E171"
+        }
+      ]
+    },
+    {
+      "code": "202",
+      "name": "Potassium sorbate",
+      "classes": [
+        "PRESERVATIVE"
+      ],
+      "aliases": [
+        "potassium sorbate"
+      ]
+    },
+    {
+      "code": "211",
+      "name": "Sodium benzoate",
+      "classes": [
+        "PRESERVATIVE"
+      ],
+      "aliases": [
+        "sodium benzoate"
+      ]
+    },
+    {
+      "code": "212",
+      "name": "Potassium benzoate",
+      "classes": [
+        "PRESERVATIVE"
+      ],
+      "aliases": [
+        "potassium benzoate"
+      ]
+    },
+    {
+      "code": "260",
+      "name": "Acetic acid",
+      "classes": [
+        "ACIDITY_REGULATOR"
+      ],
+      "aliases": [
+        "acetic acid"
+      ]
+    },
+    {
+      "code": "282",
+      "name": "Calcium propionate",
+      "classes": [
+        "PRESERVATIVE"
+      ],
+      "aliases": [
+        "calcium propionate"
+      ]
+    },
+    {
+      "code": "296",
+      "name": "Malic acid",
+      "classes": [
+        "ACIDITY_REGULATOR"
+      ],
+      "aliases": [
+        "malic acid"
+      ]
+    },
+    {
+      "code": "306",
+      "name": "Mixed tocopherols",
+      "classes": [
+        "ANTIOXIDANT"
+      ],
+      "aliases": [
+        "mixed tocopherols",
+        "tocopherols",
+        "vitamin e (mixed tocopherols)"
+      ]
+    },
+    {
+      "code": "320",
+      "name": "Butylated hydroxyanisole",
+      "classes": [
+        "ANTIOXIDANT"
+      ],
+      "aliases": [
+        "bha"
+      ],
+      "hazards": [
+        {
+          "authority": "IARC",
+          "finding": "Group 2B (possibly carcinogenic to humans)",
+          "tier": "C",
+          "asOf": "1987-01-01",
+          "citation": "IARC Monographs Suppl. 7"
+        }
+      ]
+    },
+    {
+      "code": "321",
+      "name": "Butylated hydroxytoluene",
+      "classes": [
+        "ANTIOXIDANT"
+      ],
+      "aliases": [
+        "bht",
+        "bht for freshness"
+      ]
+    },
+    {
+      "code": "322",
+      "name": "Lecithins",
+      "classes": [
+        "EMULSIFIER",
+        "ANTIOXIDANT"
+      ],
+      "aliases": [
+        "lecithin",
+        "soy lecithin",
+        "soya lecithin",
+        "sunflower lecithin"
+      ]
+    },
+    {
+      "code": "330",
+      "name": "Citric acid",
+      "classes": [
+        "ACIDITY_REGULATOR"
+      ],
+      "aliases": [
+        "citric acid"
+      ]
+    },
+    {
+      "code": "331",
+      "name": "Sodium citrates",
+      "classes": [
+        "ACIDITY_REGULATOR"
+      ],
+      "aliases": [
+        "sodium citrate"
+      ]
+    },
+    {
+      "code": "338",
+      "name": "Phosphoric acid",
+      "classes": [
+        "ACIDITY_REGULATOR"
+      ],
+      "aliases": [
+        "phosphoric acid"
+      ]
+    },
+    {
+      "code": "407",
+      "name": "Carrageenan",
+      "classes": [
+        "THICKENER"
+      ],
+      "aliases": [
+        "carrageenan"
+      ]
+    },
+    {
+      "code": "412",
+      "name": "Guar gum",
+      "classes": [
+        "THICKENER"
+      ],
+      "aliases": [
+        "guar gum"
+      ]
+    },
+    {
+      "code": "415",
+      "name": "Xanthan gum",
+      "classes": [
+        "THICKENER"
+      ],
+      "aliases": [
+        "xanthan gum"
+      ]
+    },
+    {
+      "code": "440",
+      "name": "Pectins",
+      "classes": [
+        "THICKENER"
+      ],
+      "aliases": [
+        "pectin"
+      ]
+    },
+    {
+      "code": "451",
+      "name": "Triphosphates",
+      "classes": [
+        "HUMECTANT"
+      ],
+      "aliases": [
+        "sodium tripolyphosphate",
+        "pentasodium triphosphate"
+      ]
+    },
+    {
+      "code": "471",
+      "name": "Mono- and diglycerides of fatty acids",
+      "classes": [
+        "EMULSIFIER"
+      ],
+      "aliases": [
+        "mono and diglycerides",
+        "mono- and diglycerides"
+      ]
+    },
+    {
+      "code": "476",
+      "name": "Polyglycerol polyricinoleate",
+      "classes": [
+        "EMULSIFIER"
+      ],
+      "aliases": [
+        "pgpr",
+        "polyglycerol polyricinoleate"
+      ]
+    },
+    {
+      "code": "500",
+      "name": "Sodium carbonates",
+      "classes": [
+        "RAISING_AGENT",
+        "ACIDITY_REGULATOR"
+      ],
+      "aliases": [
+        "baking soda",
+        "sodium bicarbonate",
+        "sodium hydrogen carbonate"
+      ]
+    },
+    {
+      "code": "501",
+      "name": "Potassium carbonates",
+      "classes": [
+        "ACIDITY_REGULATOR"
+      ],
+      "aliases": [
+        "potassium carbonate"
+      ]
+    },
+    {
+      "code": "503",
+      "name": "Ammonium carbonates",
+      "classes": [
+        "RAISING_AGENT"
+      ],
+      "aliases": [
+        "ammonium bicarbonate"
+      ]
+    },
+    {
+      "code": "508",
+      "name": "Potassium chloride",
+      "classes": [
+        "STABILISER",
+        "THICKENER"
+      ],
+      "aliases": [
+        "potassium chloride"
+      ]
+    },
+    {
+      "code": "621",
+      "name": "Monosodium L-glutamate",
+      "classes": [
+        "FLAVOUR_ENHANCER"
+      ],
+      "aliases": [
+        "msg",
+        "monosodium glutamate"
+      ]
+    },
+    {
+      "code": "627",
+      "name": "Disodium 5'-guanylate",
+      "classes": [
+        "FLAVOUR_ENHANCER"
+      ],
+      "aliases": [
+        "disodium guanylate"
+      ]
+    },
+    {
+      "code": "631",
+      "name": "Disodium 5'-inosinate",
+      "classes": [
+        "FLAVOUR_ENHANCER"
+      ],
+      "aliases": [
+        "disodium inosinate"
+      ]
+    },
+    {
+      "code": "635",
+      "name": "Disodium 5'-ribonucleotides",
+      "classes": [
+        "FLAVOUR_ENHANCER"
+      ],
+      "aliases": [
+        "disodium ribonucleotides"
+      ]
+    },
+    {
+      "code": "924a",
+      "name": "Potassium bromate",
+      "classes": [
+        "FLOUR_TREATMENT_AGENT"
+      ],
+      "aliases": [
+        "potassium bromate"
+      ],
+      "statuses": [
+        {
+          "jurisdiction": "IN",
+          "status": "PROHIBITED",
+          "effectiveFrom": "2016-06-20",
+          "citation": "FSSAI potassium bromate 2016"
+        }
+      ]
+    },
+    {
+      "code": "950",
+      "name": "Acesulfame potassium",
+      "classes": [
+        "SWEETENER"
+      ],
+      "aliases": [
+        "acesulfame k",
+        "acesulfame potassium",
+        "ace-k"
+      ],
+      "hazards": [
+        {
+          "authority": "WHO",
+          "finding": "WHO guideline (2023) advises against non-sugar sweeteners for weight control",
+          "tier": "C",
+          "asOf": "2023-05-15",
+          "citation": "WHO NSS guideline 2023"
+        }
+      ]
+    },
+    {
+      "code": "951",
+      "name": "Aspartame",
+      "classes": [
+        "SWEETENER",
+        "FLAVOUR_ENHANCER"
+      ],
+      "aliases": [
+        "aspartame"
+      ],
+      "hazards": [
+        {
+          "authority": "IARC",
+          "finding": "Group 2B (2023); JECFA ADI unchanged",
+          "tier": "C",
+          "asOf": "2023-07-14",
+          "citation": "IARC-JECFA aspartame 2023"
+        }
+      ]
+    },
+    {
+      "code": "954",
+      "name": "Saccharin",
+      "classes": [
+        "SWEETENER"
+      ],
+      "aliases": [
+        "saccharin"
+      ],
+      "hazards": [
+        {
+          "authority": "WHO",
+          "finding": "WHO guideline (2023) advises against non-sugar sweeteners for weight control",
+          "tier": "C",
+          "asOf": "2023-05-15",
+          "citation": "WHO NSS guideline 2023"
+        }
+      ]
+    },
+    {
+      "code": "955",
+      "name": "Sucralose",
+      "classes": [
+        "SWEETENER"
+      ],
+      "aliases": [
+        "sucralose"
+      ],
+      "hazards": [
+        {
+          "authority": "WHO",
+          "finding": "WHO guideline (2023) advises against non-sugar sweeteners for weight control",
+          "tier": "C",
+          "asOf": "2023-05-15",
+          "citation": "WHO NSS guideline 2023"
+        }
+      ]
+    },
+    {
+      "code": "960",
+      "name": "Steviol glycosides",
+      "classes": [
+        "SWEETENER"
+      ],
+      "aliases": [
+        "stevia",
+        "steviol glycosides",
+        "stevia extract",
+        "stevia leaf extract"
+      ],
+      "hazards": [
+        {
+          "authority": "WHO",
+          "finding": "WHO guideline (2023) advises against non-sugar sweeteners for weight control",
+          "tier": "C",
+          "asOf": "2023-05-15",
+          "citation": "WHO NSS guideline 2023"
+        }
+      ]
+    },
+    {
+      "code": "1100",
+      "name": "Amylases",
+      "classes": [
+        "FLOUR_TREATMENT_AGENT"
+      ],
+      "aliases": [
+        "amylase",
+        "fungal amylase"
+      ]
+    },
+    {
+      "code": "1422",
+      "name": "Acetylated distarch adipate",
+      "classes": [
+        "THICKENER"
+      ],
+      "aliases": [
+        "acetylated distarch adipate"
+      ]
+    },
+    {
+      "code": "1442",
+      "name": "Hydroxypropyl distarch phosphate",
+      "classes": [
+        "THICKENER"
+      ],
+      "aliases": [
+        "hydroxypropyl distarch phosphate"
+      ]
+    }
+  ]
+}

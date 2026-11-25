@@ -1,0 +1,18 @@
+# HealthSwap configuration for every environment (port of src/HealthSwap.Api/appsettings.json and the CLI's appsettings.json).
+#
+# Layering, later wins: code defaults (src/healthswap/platform/settings.py) -> this file -> settings.<environment>.toml
+# -> environment variables HS_<SECTION>__<KEY> (for example HS_LLM__PROVIDER=AzureOpenAI, HS_SCHEDULER__ENABLED=false,
+# DATABASE_URL) -> code overrides. Keys are snake_case; unknown keys are errors. Only values that differ from the code
+# defaults are listed. Never store secrets here: HS_LLM__API_KEY / HS_LLM__BEARER_TOKEN must come from the environment.
+
+[database]
+# PostgreSQL (libpq URL). Local development uses the PGlite server in tools/devdb (node server.mjs --port 55432).
+url = "postgresql://postgres:postgres@127.0.0.1:55432/postgres?sslmode=disable&connect_timeout=30"
+
+[llm]
+# Mock provider: return invalid output for 1 in 7 calls so the validator chain is exercised.
+# Real models: provider = "AzureOpenAI" with HS_LLM__ENDPOINT and HS_LLM__API_KEY set in the environment.
+mock_fault_every = 7
+
+# [cache]
+# redis = "localhost:6379"   # StackExchange.Redis string or redis:// URL; unset = in-process memory store

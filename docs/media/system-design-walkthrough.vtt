@@ -1,0 +1,289 @@
+WEBVTT
+
+1
+00:00:00.100 --> 00:00:09.625
+This video walks through the HealthSwap system: what each component does, how requests and data flow through the code, and how the parts work together.
+
+2
+00:00:09.725 --> 00:00:21.239
+HealthSwap is a B2B service for grocery and quick-commerce apps. When a shopper builds a cart, it suggests healthier, in-stock and allergen-safe alternatives from the same store.
+
+3
+00:00:21.339 --> 00:00:28.829
+A partner's app sends the shopper's cart to HealthSwap, which answers with healthier alternatives from the same store.
+
+4
+00:00:28.929 --> 00:00:39.323
+Every alternative carries the label "Recommended by HealthSwap", a factual reason and the price difference. The shopper decides; HealthSwap never changes the cart.
+
+5
+00:00:39.423 --> 00:00:56.838
+Two fee rules can apply, with terms set per partner. FP-1 earns a share of the fair premium, ten percent in the demo, when a pricier swap is delivered and kept. RA-1 charges a small fixed fee, one rupee in the demo, each time a shopper adds a recommended product.
+
+6
+00:00:56.938 --> 00:01:07.697
+Rules, not language models, decide what is healthier and what is billed. Ranking never looks at fees, and every call fails open, so the cart never waits.
+
+7
+00:01:07.797 --> 00:01:17.912
+At the edge, partner apps and the partner's backend call the Partner API. AI shopping agents use the MCP server, and operators use the admin plane.
+
+8
+00:01:18.012 --> 00:01:27.826
+All three planes call the same platform services. On the request path the services read the hot cache, and they write PostgreSQL in short transactions.
+
+9
+00:01:27.926 --> 00:01:38.221
+Offline, the knowledge plane turns food data sources into scores, a swap graph and explanations in PostgreSQL, and a cache warmer copies them into the hot cache.
+
+10
+00:01:38.321 --> 00:01:44.205
+Language models are used only by these offline jobs, never while a shopper waits.
+
+11
+00:01:44.305 --> 00:01:54.385
+The code has three layers with a single dependency direction: api calls platform, and platform calls domain. Nothing calls upward.
+
+12
+00:01:54.485 --> 00:02:06.099
+The api package handles HTTP: the application factory, the middleware chain, authentication, contract validation, and the route sets for partners, operators and agents.
+
+13
+00:02:06.199 --> 00:02:18.334
+The platform package does everything with input and output: services, the knowledge jobs, database transactions, the hot cache, the event bus, and the LLM and model clients.
+
+14
+00:02:18.434 --> 00:02:31.213
+The domain package holds the business rules as pure functions: scores, eligibility rules, ranking, explanations, fees and ledger postings. They are unit-tested without a database.
+
+15
+00:02:31.313 --> 00:02:39.858
+platform/container.py is the composition root. It builds every service lazily from the settings and starts the background workers.
+
+16
+00:02:39.958 --> 00:02:50.397
+The contract lives in api, the database schema in db, settings in config, and market packs, seed products and demo partners in data.
+
+17
+00:02:50.497 --> 00:02:59.682
+src/healthswap is the service itself. sdk/python and sdk/web are the partner SDKs, and web/demo is a demo shop built with the web SDK.
+
+18
+00:02:59.782 --> 00:03:10.666
+ml trains the models, scripts start the local stack and run the smoke test, tools holds the WebAssembly database and the video recorder, and tests mirror the layers.
+
+19
+00:03:10.766 --> 00:03:23.136
+Every request passes the same chain. CORS comes first, then the problem handler, which turns any error into an RFC 9457 problem document with a stable error code.
+
+20
+00:03:23.236 --> 00:03:35.005
+Authentication validates the bearer token: an ES256 token from the OAuth endpoint, or a short-lived SDK session token. Then per-partner rate limits apply.
+
+21
+00:03:35.105 --> 00:03:45.890
+The route pipeline checks the operation's scope, validates body, query and path against openapi.yaml itself, and records Idempotency-Keys for create operations.
+
+22
+00:03:45.990 --> 00:03:52.609
+The handler runs on a worker thread and calls a service, which takes every decision with pure domain rules.
+
+23
+00:03:52.709 --> 00:04:01.114
+Each unit of work is one transaction with one database role and the partner id set locally, so row-level security isolates every tenant.
+
+24
+00:04:01.214 --> 00:04:08.008
+Business events are inserted into an outbox table in the same transaction, so a crash can never lose them.
+
+25
+00:04:08.108 --> 00:04:17.968
+The knowledge plane runs offline. hs seed builds a fresh environment, and the hs kb commands or the admin jobs endpoint rebuild it.
+
+26
+00:04:18.068 --> 00:04:33.292
+Connectors read each source format into product candidates. The ingestor parses ingredients, additives and allergens, applies quality rules, merges duplicates across sources, and asks a language model for a category only when a source has none.
+
+27
+00:04:33.392 --> 00:04:44.297
+The scoring job computes the HealthSwap Index per market: 70% nutrient profile, 15% processing level and 15% additives, graded A to E.
+
+28
+00:04:44.397 --> 00:04:55.211
+The swap-graph builder finds healthier substitutes, the explanation job pre-writes why each swap is better, and the cache warmer copies everything the hot path needs into the hot cache.
+
+29
+00:04:55.311 --> 00:05:08.626
+Let's zoom into the swap-graph builder. For each product it first blocks candidates: the same or an approved category, eligible, and a higher index. Then it ranks them by embedding similarity.
+
+30
+00:05:08.726 --> 00:05:23.675
+Each pair gets a substitutability score from an ONNX model, or from a heuristic when no model is installed. Only uncertain pairs, between 0.6 and 0.8, go to the language-model judge, and its score is averaged in.
+
+31
+00:05:23.775 --> 00:05:35.200
+Static rules then decide eligibility: substitutable, meaningfully healthier, no worse limited nutrients, no new additive concerns or extra processing, and enough data.
+
+32
+00:05:35.300 --> 00:05:48.429
+The best edges by health gain times substitutability are kept, with brand diversity. Validation gates must pass; then the new graph is activated blue/green: new keys first, then the pointer flips.
+
+33
+00:05:48.529 --> 00:05:55.744
+When a product gets no alternatives, the admin diagnostics endpoint shows every candidate with its rule results.
+
+34
+00:05:55.844 --> 00:06:09.863
+Before carts can be evaluated, partners sync their catalog. CatalogService matches each SKU to a canonical product, by GTIN first and then by entity resolution, which either auto-matches or asks for review.
+
+35
+00:06:09.963 --> 00:06:19.703
+Matches that need review trigger a signed webhook. Items that carry their own label data but match nothing are ingested as new products and scored by a background job.
+
+36
+00:06:19.803 --> 00:06:30.302
+Inventory batches mirror stock and prices per store, so every suggestion is in stock at the shopper's store. Large catalogs use feed files with a pre-signed upload.
+
+37
+00:06:30.402 --> 00:06:42.621
+Now the hot path: the cart evaluations endpoint. EvaluationService reads only the hot cache. There is no database query and no language-model call while the shopper waits.
+
+38
+00:06:42.722 --> 00:06:55.396
+Step one resolves each cart line to a product. Step two applies the kill switch, the placement policy and the experiment holdout. Step three loads the shopper's preferences, honoring consent.
+
+39
+00:06:55.496 --> 00:07:13.326
+Step four picks the target lines: scored products below their category's 60th percentile that are not already a HealthSwap recommendation. Step five reads their precomputed swap edges and filters them: allergens and diet, stock, price and pack-size guards, and the seven-day dismiss cool-down.
+
+40
+00:07:13.426 --> 00:07:22.555
+The survivors are ranked by health gain, substitutability and the acceptance predicted by the ONNX ranker. Fees are never a ranking feature.
+
+41
+00:07:22.655 --> 00:07:34.689
+Step six keeps at most three suggestions per cart, one per category. Step seven attaches explanations and the RA-1 label, and stores a suggestion snapshot for the events that follow.
+
+42
+00:07:34.790 --> 00:07:46.754
+The response returns at once. A background recorder writes the evaluation and its suggestions to PostgreSQL afterwards, and when the compute budget runs out the response is marked degraded instead of waiting.
+
+43
+00:07:46.854 --> 00:07:58.364
+On the client side, the partner backend mints a short-lived SDK session bound to one cart, using its own OAuth credentials. The app only ever holds that session token.
+
+44
+00:07:58.464 --> 00:08:08.828
+With it, the app evaluates the cart directly and renders the labeled suggestions and the fee disclosure. In a web shop, the web SDK does this in a few calls.
+
+45
+00:08:08.928 --> 00:08:22.208
+Then it reports what the shopper did, in batches: an impression after a second of visibility, accept, add, undo or dismiss. The SDK never changes the cart; the partner's callbacks do.
+
+46
+00:08:22.308 --> 00:08:32.132
+Events arrive in batches. EventService deduplicates on the client's event id, then stores each event and its outbox message in one transaction.
+
+47
+00:08:32.232 --> 00:08:44.156
+An accept or an add of a recommended product creates a pending RA-1 charge, and an undo within five seconds voids it. Adds also label the cart line, and a dismiss starts the seven-day cool-down.
+
+48
+00:08:44.256 --> 00:09:00.046
+Every thirty seconds the finalizer settles pending charges once the ten-minute window has passed. It checks the evidence: served by HealthSwap, a recommended SKU, inside the window, an impression no later than five seconds after the add, and the caps.
+
+49
+00:09:00.146 --> 00:09:11.200
+If the evidence holds, the charge becomes final and the fee is posted to the ledger; otherwise it is rejected with a reason. A final charge can later be credited by an upheld dispute.
+
+50
+00:09:11.301 --> 00:09:25.715
+At checkout the partner reports the order, with the suggestion id on each line that came from a swap. The attribution engine checks the evidence: served, accepted, shown, the same product, and inside the window.
+
+51
+00:09:25.815 --> 00:09:37.055
+The fair premium is the smaller of the pack-price difference and the size-normalized difference, times the replaced quantity. FP-1 is ten percent of it, within the contract's caps.
+
+52
+00:09:37.155 --> 00:09:47.974
+For example, millet noodles at a net ₹85 replace ₹56 noodles: ₹29 more per pack, so for two packs the fee is ₹5.80.
+
+53
+00:09:48.074 --> 00:09:59.663
+The fee is pending until delivery, accrues when the order is delivered, is partly reversed by returns, and becomes final after the return window. Each step is a balanced ledger posting.
+
+54
+00:09:59.763 --> 00:10:11.003
+At month close, BillingService gathers each partner's final FP-1 fees and RA-1 charges into a statement, adds tax and an invoice number, and sends the statement webhook.
+
+55
+00:10:11.103 --> 00:10:22.017
+Every money movement is a posting in an append-only, double-entry ledger, and a database trigger rejects any entry that does not balance. The trial balance proves the books add up.
+
+56
+00:10:22.118 --> 00:10:33.092
+Partners can dispute statement lines or single charges within the dispute window. An upheld dispute issues a credit note, the charges become credited, and the partner gets a webhook.
+
+57
+00:10:33.192 --> 00:10:45.581
+Services never call consumers directly. They write an outbox row inside their own transaction; the outbox relay publishes committed rows to the in-process bus, which stands in for Kafka.
+
+58
+00:10:45.681 --> 00:10:55.026
+The lake sink appends every message to JSON-lines files, partitioned by topic and day. These files are the training data for the machine-learning models.
+
+59
+00:10:55.126 --> 00:11:09.630
+The webhook fan-out creates one delivery per subscribed endpoint. The dispatcher signs each body with HMAC-SHA256, checks the URL against SSRF rules, and retries with backoff for up to 24 hours.
+
+60
+00:11:09.730 --> 00:11:22.990
+Three ONNX models run inside the API process: the ranker, substitutability and entity resolution. Their training data comes from the event lake, exported by the hs ml commands.
+
+61
+00:11:23.090 --> 00:11:38.315
+ml/train.py fits scikit-learn models, exports them to ONNX, checks them against scikit-learn and installs them; the registry loads them on reload. Without a model, deterministic heuristics take over, so the API always works.
+
+62
+00:11:38.415 --> 00:11:54.209
+The LLM gateway serves four offline tasks: category classification, the substitutability judge, explanation polish and embeddings. Every call uses a versioned prompt, strict JSON output, validators, a budget and an audit row.
+
+63
+00:11:54.309 --> 00:12:05.878
+ml/finetune builds chat-format datasets from the same data and submits fine-tuning jobs to Azure OpenAI; hs llm eval then compares the new deployment through the production validators.
+
+64
+00:12:05.978 --> 00:12:21.753
+Security is layered. Partners authenticate with OAuth client credentials and receive ES256 tokens that live ten minutes. Every operation needs its scope, and SDK sessions are limited to one cart and at most three scopes.
+
+65
+00:12:21.853 --> 00:12:34.662
+In PostgreSQL, row-level security isolates tenants. Every transaction sets one of five roles and the partner id, so the request path, the money path and the knowledge plane can only touch what they own.
+
+66
+00:12:34.762 --> 00:12:48.812
+Requests are validated against the contract, rate-limited and idempotent. Webhooks are signed and SSRF-checked, the SDKs render API data only as text, and LLM keys never live in config files.
+
+67
+00:12:48.912 --> 00:13:02.081
+Locally, scripts/run_local.py starts PostgreSQL in WebAssembly, seeds the knowledge base and the demo partners, and serves the API, the admin plane, MCP and the demo shop from one process.
+
+68
+00:13:02.181 --> 00:13:12.286
+Tests mirror the layers: pure domain tests, platform and API flows on a fresh in-memory database per module, the SDK, and the ML tooling.
+
+69
+00:13:12.386 --> 00:13:21.161
+The smoke test drives a running stack end to end, from the label to the statement, and the demo recorder produced both the demo video and this walkthrough.
+
+70
+00:13:21.261 --> 00:13:32.905
+To recap: the knowledge plane precomputes scores, a swap graph and explanations offline. The hot path reads only the cache, answers in milliseconds and fails open.
+
+71
+00:13:33.005 --> 00:13:41.945
+Events, orders and a double-entry ledger turn accepted swaps into transparent fees, and strict layers keep the business rules pure and tested.
+
+72
+00:13:42.045 --> 00:13:50.769
+For the details, read documents 07, 09 and 10 in the repository. Thanks for watching.

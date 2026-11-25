@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HealthSwap.Domain</RootNamespace>
+    <Description>Pure decision logic: identifiers, units, scoring models, eligibility rules, ranking, explanations, recommendation labels and fee rules (FP-1, RA-1). No I/O.</Description>
+  </PropertyGroup>
+</Project>

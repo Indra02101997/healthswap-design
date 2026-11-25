@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HealthSwap.Platform</RootNamespace>
+    <Description>Application services and infrastructure: PostgreSQL (Npgsql/Dapper) with row-level security, hot cache, outbox and event bus, LLM gateway, ONNX models, knowledge pipeline, attribution, RA-1 charges, ledger and billing.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HealthSwap.Domain\HealthSwap.Domain.csproj" />
+    <ProjectReference Include="..\HealthSwap.Contracts\HealthSwap.Contracts.csproj" />
+  </ItemGroup>
+</Project>

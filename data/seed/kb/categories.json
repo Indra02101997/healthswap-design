@@ -1,0 +1,32 @@
+{
+  "version": "2026.11.1",
+  "note": "GPC-aligned category taxonomy with India-specific leaves (subset for the pilot categories). Codes are dot paths; scoringCategory routes nutrient-profiling model variants.",
+  "categories": [
+    { "code": "beverages", "name": "Beverages", "physicalState": "LIQUID", "scoringCategory": "BEVERAGE" },
+    { "code": "beverages.carbonated", "name": "Carbonated drinks", "physicalState": "LIQUID", "scoringCategory": "BEVERAGE" },
+    { "code": "beverages.carbonated.soft-drinks", "name": "Soft drinks", "physicalState": "LIQUID", "scoringCategory": "BEVERAGE", "gpcBrick": "10000232" },
+    { "code": "beverages.carbonated.flavoured-water", "name": "Sparkling flavoured water", "physicalState": "LIQUID", "scoringCategory": "BEVERAGE", "gpcBrick": "10000227" },
+    { "code": "beverages.flavoured-milk", "name": "Flavoured milk drinks", "physicalState": "LIQUID", "scoringCategory": "BEVERAGE" },
+    { "code": "biscuits", "name": "Biscuits and cookies", "physicalState": "SOLID", "scoringCategory": "GENERAL" },
+    { "code": "biscuits.sweet", "name": "Sweet biscuits and cookies", "physicalState": "SOLID", "scoringCategory": "GENERAL", "gpcBrick": "10000045" },
+    { "code": "noodles", "name": "Noodles and pasta", "physicalState": "SOLID", "scoringCategory": "GENERAL" },
+    { "code": "noodles.instant", "name": "Instant noodles", "physicalState": "SOLID", "scoringCategory": "GENERAL", "gpcBrick": "10000170" },
+    { "code": "snacks", "name": "Savoury snacks", "physicalState": "SOLID", "scoringCategory": "GENERAL" },
+    { "code": "snacks.chips", "name": "Chips and crisps", "physicalState": "SOLID", "scoringCategory": "GENERAL", "gpcBrick": "10000193" },
+    { "code": "snacks.namkeen", "name": "Namkeen and roasted snacks", "physicalState": "SOLID", "scoringCategory": "GENERAL" },
+    { "code": "breakfast", "name": "Breakfast", "physicalState": "SOLID", "scoringCategory": "GENERAL" },
+    { "code": "breakfast.cereals", "name": "Breakfast cereals", "physicalState": "SOLID", "scoringCategory": "GENERAL", "gpcBrick": "10000054" },
+    { "code": "dairy", "name": "Dairy", "physicalState": "MIXED", "scoringCategory": "GENERAL" },
+    { "code": "dairy.yogurt", "name": "Yogurt and curd", "physicalState": "SOLID", "scoringCategory": "GENERAL", "gpcBrick": "10000027" },
+    { "code": "bread", "name": "Bread", "physicalState": "SOLID", "scoringCategory": "GENERAL" },
+    { "code": "bread.sliced", "name": "Sliced bread", "physicalState": "SOLID", "scoringCategory": "GENERAL", "gpcBrick": "10000159" },
+    { "code": "confectionery", "name": "Confectionery", "physicalState": "SOLID", "scoringCategory": "GENERAL" },
+    { "code": "confectionery.chocolate", "name": "Chocolate", "physicalState": "SOLID", "scoringCategory": "GENERAL", "gpcBrick": "10000047" },
+    { "code": "sauces", "name": "Sauces and spreads", "physicalState": "MIXED", "scoringCategory": "GENERAL" },
+    { "code": "sauces.ketchup", "name": "Ketchup and tomato sauces", "physicalState": "MIXED", "scoringCategory": "GENERAL" },
+    { "code": "infant-foods", "name": "Infant foods (excluded from swaps)", "physicalState": "MIXED", "scoringCategory": "GENERAL" }
+  ],
+  "substitutionMaps": [
+    { "markets": ["IN", "US"], "from": "beverages.carbonated.soft-drinks", "to": "beverages.carbonated.flavoured-water", "approvedBy": "Nutrition Advisory Board (illustrative)", "notes": "Sugary soft drinks to unsweetened sparkling or flavoured water (doc 03 section 5)" }
+  ]
+}

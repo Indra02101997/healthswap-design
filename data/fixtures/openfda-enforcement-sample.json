@@ -1,0 +1,21 @@
+{
+  "meta": { "disclaimer": "SYNTHETIC record in the openFDA food enforcement response layout for local testing.", "last_updated": "2026-11-12", "results": { "skip": 0, "limit": 1, "total": 1 } },
+  "results": [
+    {
+      "recall_number": "F-9999-2026",
+      "event_id": "999901",
+      "status": "Ongoing",
+      "classification": "Class II",
+      "product_type": "Food",
+      "product_description": "Sunny Valley Honey Oat Granola, 12 oz (340 g) bag, UPC 0 99999 00003 0",
+      "code_info": "UPC 099999000030, Best By 2027-03-01 through 2027-04-15",
+      "reason_for_recall": "Undeclared almonds (tree nuts)",
+      "recalling_firm": "Sunny Valley Foods (synthetic)",
+      "distribution_pattern": "Nationwide",
+      "recall_initiation_date": "20261101",
+      "report_date": "20261105",
+      "voluntary_mandated": "Voluntary: Firm initiated",
+      "country": "United States"
+    }
+  ]
+}

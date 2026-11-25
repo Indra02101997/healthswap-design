@@ -1,0 +1,19 @@
+{
+  "items": [
+    { "partnerSku": "HG-CRL-FROST", "gtin": "099999000016", "title": "Sunny Valley Frosted Corn Flakes 13.5 oz", "brand": "Sunny Valley", "categoryPath": ["Breakfast", "Cereal"], "netQuantity": { "value": 382.7, "unit": "g" } },
+    { "partnerSku": "HG-CRL-WGLITE", "gtin": "099999000023", "title": "Prairie Harvest Whole Grain Lite Flakes 12 oz", "brand": "Prairie Harvest", "categoryPath": ["Breakfast", "Cereal"], "netQuantity": { "value": 340.2, "unit": "g" } },
+    { "partnerSku": "HG-GRAN-HONEY", "gtin": "099999000030", "title": "Sunny Valley Honey Oat Granola 12 oz", "brand": "Sunny Valley", "categoryPath": ["Breakfast", "Granola"], "netQuantity": { "value": 340.2, "unit": "g" } },
+    { "partnerSku": "HG-COLA-12", "gtin": "099999000047", "title": "Fizzy Pop Cola 12 fl oz", "brand": "Fizzy Pop", "categoryPath": ["Beverages", "Soda"], "netQuantity": { "value": 354.9, "unit": "ml" } },
+    { "partnerSku": "HG-ZCOLA-12", "gtin": "099999000054", "title": "Fizzy Pop Zero Sugar Cola 12 fl oz", "brand": "Fizzy Pop", "categoryPath": ["Beverages", "Soda"], "netQuantity": { "value": 354.9, "unit": "ml" } },
+    { "partnerSku": "HG-LIME-12", "gtin": "099999000061", "title": "Clear Spring Sparkling Lime Water 12 fl oz", "brand": "Clear Spring", "categoryPath": ["Beverages", "Sparkling Water"], "netQuantity": { "value": 354.9, "unit": "ml" } },
+    { "partnerSku": "HG-CHIP-CLS", "gtin": "099999000078", "title": "Crunch Co. Classic Potato Chips 8 oz", "brand": "Crunch Co.", "categoryPath": ["Snacks", "Chips"], "netQuantity": { "value": 226.8, "unit": "g" } },
+    { "partnerSku": "HG-CHIP-BKD", "gtin": "099999000085", "title": "Crunch Co. Baked Potato Crisps 6.25 oz", "brand": "Crunch Co.", "categoryPath": ["Snacks", "Chips"], "netQuantity": { "value": 177.2, "unit": "g" } },
+    { "partnerSku": "HG-CHIP-LS", "gtin": "099999000092", "title": "Golden Fields Lightly Salted Kettle Chips 8 oz", "brand": "Golden Fields", "categoryPath": ["Snacks", "Chips"], "netQuantity": { "value": 226.8, "unit": "g" } },
+    { "partnerSku": "HG-YOG-STR", "gtin": "099999000108", "title": "BlueSky Strawberry Lowfat Yogurt 5.3 oz", "brand": "BlueSky", "categoryPath": ["Dairy", "Yogurt"], "netQuantity": { "value": 150.3, "unit": "g" } },
+    { "partnerSku": "HG-YOG-GRK", "gtin": "099999000115", "title": "Prairie Harvest Plain Nonfat Greek Yogurt 5.3 oz", "brand": "Prairie Harvest", "categoryPath": ["Dairy", "Yogurt"], "netQuantity": { "value": 150.3, "unit": "g" } },
+    { "partnerSku": "HG-BRD-WHT", "gtin": "099999000122", "title": "Hometown White Sandwich Bread 20 oz", "brand": "Hometown", "categoryPath": ["Bakery", "Bread"], "netQuantity": { "value": 567.0, "unit": "g" }, "isPrivateLabel": true },
+    { "partnerSku": "HG-BRD-WW", "gtin": "099999000139", "title": "Hometown 100% Whole Wheat Bread 24 oz", "brand": "Hometown", "categoryPath": ["Bakery", "Bread"], "netQuantity": { "value": 680.4, "unit": "g" }, "isPrivateLabel": true },
+    { "partnerSku": "HG-CK-CHOC", "gtin": "099999000146", "title": "Sunny Valley Chocolate Chip Cookies 13 oz", "brand": "Sunny Valley", "categoryPath": ["Snacks", "Cookies"], "netQuantity": { "value": 368.5, "unit": "g" } },
+    { "partnerSku": "HG-CK-OAT", "gtin": "099999000153", "title": "Golden Fields Oatmeal Raisin Cookies 12 oz", "brand": "Golden Fields", "categoryPath": ["Snacks", "Cookies"], "netQuantity": { "value": 340.2, "unit": "g" } }
+  ]
+}

@@ -1,0 +1,288 @@
+/*
+ * HealthSwap web SDK styles: neutral and accessible (text contrast >= 4.5:1, visible focus, 44 px touch targets).
+ * Theme with the custom properties on .hs-suggestions (or any ancestor); every class is prefixed with hs-.
+ */
+
+.hs-suggestions {
+  --hs-font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --hs-text: #1f2328;
+  --hs-muted: #57606a;
+  --hs-surface: #ffffff;
+  --hs-surface-alt: #f6f8fa;
+  --hs-border: #d0d7de;
+  --hs-border-strong: #8c959f;
+  --hs-accent: #0b6e4f;
+  --hs-accent-hover: #08553d;
+  --hs-on-accent: #ffffff;
+  --hs-link: #0550ae;
+  --hs-focus: #0550ae;
+  --hs-label-bg: #e6f4ea;
+  --hs-label-text: #0a5c36;
+  --hs-radius: 8px;
+
+  font-family: var(--hs-font);
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--hs-text);
+  background: var(--hs-surface);
+  border: 1px solid var(--hs-border);
+  border-radius: var(--hs-radius);
+  padding: 1rem;
+}
+
+.hs-suggestions *,
+.hs-suggestions *::before,
+.hs-suggestions *::after {
+  box-sizing: border-box;
+}
+
+.hs-suggestions [hidden] {
+  display: none !important;
+}
+
+.hs-heading {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.hs-fee-disclosure {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--hs-muted);
+}
+
+.hs-cards {
+  display: grid;
+  gap: 1rem;
+}
+
+.hs-card {
+  border: 1px solid var(--hs-border);
+  border-radius: var(--hs-radius);
+  background: var(--hs-surface-alt);
+  padding: 0.75rem;
+}
+
+.hs-card-title {
+  margin: 0 0 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.hs-alts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
+}
+
+.hs-alt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  background: var(--hs-surface);
+  border: 1px solid var(--hs-border);
+  border-radius: var(--hs-radius);
+  padding: 0.75rem;
+}
+
+.hs-alt-title {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.hs-tags,
+.hs-health,
+.hs-price {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+}
+
+.hs-label,
+.hs-tag {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.hs-label {
+  /* Also used outside .hs-suggestions, for example on the cart line that holds a recommended product. */
+  background: var(--hs-label-bg, #e6f4ea);
+  color: var(--hs-label-text, #0a5c36);
+  border: 1px solid #a7d7b8;
+}
+
+.hs-tag {
+  background: #fff8c5;
+  color: #4d3800;
+  border: 1px solid #d4b106;
+}
+
+.hs-grade {
+  display: inline-block;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.hs-grade--a { background: #d7f5e3; color: #0a5c36; }
+.hs-grade--b { background: #e8f5d0; color: #2f5a0a; }
+.hs-grade--c { background: #fff1c2; color: #5c4400; }
+.hs-grade--d { background: #ffe2cc; color: #7a3300; }
+.hs-grade--e { background: #ffdad6; color: #8c0009; }
+.hs-grade--none { background: #eaeef2; color: #424a53; }
+
+.hs-muted,
+.hs-price-delta,
+.hs-countdown {
+  color: var(--hs-muted);
+  font-size: 0.875rem;
+}
+
+.hs-price-value {
+  font-weight: 700;
+}
+
+.hs-reason {
+  margin: 0;
+}
+
+.hs-note {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--hs-muted);
+}
+
+.hs-why-toggle {
+  min-height: 44px;
+  padding: 0 0.25rem;
+  margin-left: -0.25rem;
+  border: 0;
+  background: none;
+  color: var(--hs-link);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.hs-why-panel {
+  border-left: 3px solid var(--hs-border);
+  padding: 0.25rem 0 0.25rem 0.75rem;
+}
+
+.hs-why-list {
+  margin: 0;
+  padding-left: 1.125rem;
+}
+
+.hs-link {
+  color: var(--hs-link);
+  text-underline-offset: 2px;
+}
+
+.hs-alt-actions,
+.hs-card-actions,
+.hs-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hs-alt-actions {
+  margin-top: auto;
+}
+
+.hs-card-actions {
+  margin-top: 0.75rem;
+}
+
+.hs-button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hs-button--primary {
+  background: var(--hs-accent);
+  color: var(--hs-on-accent);
+  border: 1px solid var(--hs-accent);
+}
+
+.hs-button--primary:hover {
+  background: var(--hs-accent-hover);
+  border-color: var(--hs-accent-hover);
+}
+
+.hs-button--secondary {
+  background: var(--hs-surface);
+  color: var(--hs-text);
+  border: 1px solid var(--hs-border-strong);
+}
+
+.hs-button--secondary:hover {
+  background: var(--hs-surface-alt);
+}
+
+.hs-suggestions :focus-visible {
+  outline: 3px solid var(--hs-focus);
+  outline-offset: 2px;
+}
+
+.hs-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.hs-status-text {
+  margin: 0;
+  font-weight: 600;
+}
+
+.hs-footer {
+  margin-top: 1rem;
+  border-top: 1px solid var(--hs-border);
+}
+
+.hs-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (forced-colors: active) {
+  .hs-label,
+  .hs-tag,
+  .hs-grade,
+  .hs-button {
+    border: 1px solid CanvasText;
+  }
+}

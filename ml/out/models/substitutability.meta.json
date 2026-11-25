@@ -1,0 +1,105 @@
+{
+  "name": "substitutability",
+  "version": "substitutability-gbm-20261124.1315",
+  "featureNames": [
+    "category_distance",
+    "embedding_cos",
+    "form_match",
+    "flavour_match",
+    "use_occasion_match",
+    "diet_class_match",
+    "pack_ratio_log",
+    "brand_tier_same",
+    "same_brand",
+    "state_match"
+  ],
+  "inputName": "input",
+  "outputName": "probabilities",
+  "positiveClassIndex": 1,
+  "metrics": {
+    "auc": 1.0,
+    "logLoss": 2e-05,
+    "accuracy": 1.0,
+    "brier": 0.0,
+    "ece": 2e-05,
+    "heuristicAuc": 1.0,
+    "trainRows": 230.0,
+    "validationRows": 59.0,
+    "positiveRate": 0.338983,
+    "trainPositiveRate": 0.313043,
+    "candidateLogLoss_lr": 0.041182,
+    "candidateLogLoss_gbm": 2e-05
+  },
+  "trainedAt": "2026-11-24T13:15:30Z",
+  "algorithm": "GradientBoostingClassifier",
+  "calibration": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 39,
+      "meanPredicted": 1.4e-05,
+      "fractionPositive": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 20,
+      "meanPredicted": 0.99997,
+      "fractionPositive": 1.0
+    }
+  ],
+  "training": {
+    "file": "substitutability_pairs.jsonl",
+    "sha256": "c0a9e5f2f649965289f3dbe7204c04f0ce59dc136c367f0d779413a7030ba6ce",
+    "rows": 289,
+    "seed": 7,
+    "validation": "1 of 5 stratified group folds",
+    "selection": "lowest validation log loss; GradientBoosting only when at least 10% better",
+    "sampleWeights": "none",
+    "onnxParityMaxAbsDiff": 1.1085046621374004e-08,
+    "onnxOpset": {
+      "": 17,
+      "ai.onnx.ml": 3
+    }
+  }
+}

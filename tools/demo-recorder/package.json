@@ -1,0 +1,19 @@
+{
+  "name": "@healthswap/demo-recorder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Records the client-app integration demo (QuickBasket demo shop + HealthSwap web SDK) and renders the narrated system-design walkthrough video.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "record": "node record-demo.mjs",
+    "record:system-design": "node record-system-design.mjs"
+  },
+  "dependencies": {
+    "gifenc": "1.0.3",
+    "playwright-core": "1.65.1",
+    "pngjs": "7.0.0"
+  }
+}
